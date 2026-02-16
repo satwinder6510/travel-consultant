@@ -138,6 +138,40 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
     let apiKey = localStorage.getItem('anthropic_api_key') || '';
     let isLoading = false;
 
+    // Dynamic quick-reply buttons based on funnel stage
+    function getQuickReplies() {
+      const count = filteredCruises.length;
+
+      // Initial state - no filters yet
+      if (count === CRUISES.length || userTurns === 0) {
+        return ['River cruise', 'Ocean cruise', 'Caribbean', 'Mediterranean', 'Alaska'];
+      }
+      // Many matches - ask about timing
+      if (count > 500) {
+        return ['Spring 2026', 'Summer 2026', 'Fall 2026', 'Christmas markets'];
+      }
+      // Still broad - ask about duration
+      if (count > 100) {
+        return ['3-5 nights', '7 nights', '10-14 nights', '2+ weeks'];
+      }
+      // Getting specific - ask about budget
+      if (count > 50) {
+        return ['Under £1000', '£1000-2000', '£2000-3000', 'Luxury £3000+'];
+      }
+      // Nearly there - ask about preferences
+      if (count > 10) {
+        return ['Best value', 'Highest rated', 'Shortest trip', 'Longest trip'];
+      }
+      // Few options - help decide
+      return ['Tell me more', 'Show cheapest', 'Show top rated'];
+    }
+
+    // Send quick reply immediately
+    function quickReply(text) {
+      document.getElementById('messageInput').value = text;
+      sendMessage();
+    }
+
     // ========================================================================
     // RENDER
     // ========================================================================
@@ -244,9 +278,9 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
             </button>
           </div>
           <div class="max-w-4xl mx-auto mt-2 flex gap-2 flex-wrap">
-            ${['River cruise', 'Ocean cruise', 'Caribbean', 'Mediterranean', 'Danube', 'Luxury options'].map(s => `
-              <button onclick="document.getElementById('messageInput').value='${s}'"
-                class="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600">
+            ${getQuickReplies().map(s => `
+              <button onclick="quickReply('${s}')"
+                class="px-3 py-1 text-sm bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full text-blue-700 transition-colors">
                 ${s}
               </button>
             `).join('')}
