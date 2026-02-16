@@ -123,6 +123,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
     // ========================================================================
     let currentFilters = { query: '' };
     let filteredCruises = [];
+    let userTurns = 0; // Track conversation depth
 
     let messages = [
       { role: 'assistant', content: `Hello! I'm your cruise consultant. I can help you find the perfect river or ocean cruise.
@@ -204,6 +205,31 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
             ` : ''}
           </div>
         </div>
+
+        <!-- Cruise Cards - Only show after 3+ questions AND refined results -->
+        ${userTurns >= 3 && filteredCruises.length <= 50 && filteredCruises.length > 0 ? `
+        <div class="border-t bg-gradient-to-b from-blue-50 to-white p-3">
+          <div class="max-w-4xl mx-auto">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-sm font-semibold text-blue-900">Top matches</span>
+              <span class="text-xs text-gray-500">${filteredCruises.length} cruises</span>
+            </div>
+            <div class="flex gap-2 overflow-x-auto pb-2">
+              ${filteredCruises.slice(0, 8).map(c => `
+                <div class="flex-shrink-0 w-56 bg-white rounded-lg p-3 shadow-sm border text-xs hover:shadow-md transition-shadow cursor-pointer">
+                  <div class="font-semibold text-blue-900 truncate">${c.name}</div>
+                  <div class="text-gray-600 truncate">${c.ship} &bull; ${c.operator}</div>
+                  <div class="text-gray-500">${c.region} &bull; ${c.nights}N</div>
+                  <div class="flex justify-between items-center mt-2">
+                    <span class="text-green-700 font-bold">£${parseFloat(c.price).toLocaleString()}</span>
+                    <span class="px-2 py-0.5 rounded text-xs ${c.type === 'ocean' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}">${c.type}</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+        ` : ''}
 
         <!-- Input -->
         <div class="border-t bg-white p-4">
@@ -492,6 +518,7 @@ RULES:
       // Update filtered cruises based on message
       currentFilters.query = text;
       filteredCruises = filterCruises(text);
+      userTurns++; // Increment conversation depth
 
       messages.push({ role: 'user', content: text });
       input.value = '';
