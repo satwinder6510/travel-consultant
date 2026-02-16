@@ -34,7 +34,9 @@
         SHIPS = await shipsRes.json();
         OPERATORS = await operatorsRes.json();
         dataLoaded = true;
-        filteredCruises = [...CRUISES]; // Start with all cruises
+        // Filter to future cruises only
+        const today = new Date().toISOString().split('T')[0];
+        filteredCruises = CRUISES.filter(c => c.start && c.start >= today);
         console.log(`Loaded ${CRUISES.length} cruises, ${SHIPS.length} ships, ${OPERATORS.length} operators`);
         buildSystemPrompt();
         render();
@@ -161,7 +163,7 @@ Or just type what you're looking for and I'll help narrow it down!` }
 
     function updateFilteredCruises() {
       if (selectedFilters.size === 0) {
-        filteredCruises = [...CRUISES];
+        filteredCruises = CRUISES.filter(c => c.start && c.start >= TODAY);
         return;
       }
       const filters = Array.from(selectedFilters).join(' ').toLowerCase();
@@ -178,7 +180,7 @@ Or just type what you're looking for and I'll help narrow it down!` }
 
     function clearFilters() {
       selectedFilters.clear();
-      filteredCruises = [...CRUISES];
+      filteredCruises = CRUISES.filter(c => c.start && c.start >= TODAY);
       render();
     }
 
@@ -335,9 +337,13 @@ Or just type what you're looking for and I'll help narrow it down!` }
     // ========================================================================
     // SMART FILTERING - Extract criteria from user message
     // ========================================================================
+    const TODAY = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
     function filterCruises(userMessage) {
       const msg = userMessage.toLowerCase();
-      let filtered = [...CRUISES];
+
+      // Start with future cruises only
+      let filtered = CRUISES.filter(c => c.start && c.start >= TODAY);
 
       // Cruise type filter (river vs ocean)
       const oceanKeywords = [
