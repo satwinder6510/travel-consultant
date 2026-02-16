@@ -240,12 +240,25 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
         filtered = filtered.filter(c => c.type === 'ocean');
       }
 
-      // Region filters
+      // Region filters (river + ocean)
       const regions = {
+        // River regions
         'danube': 'Danube', 'vienna': 'Danube', 'budapest': 'Danube', 'passau': 'Danube',
-        'rhine': 'Rhine', 'cologne': 'Rhine', 'amsterdam': 'Rhine', 'basel': 'Rhine',
-        'douro': 'Douro', 'porto': 'Douro', 'portugal': 'Douro',
-        'rhone': 'Rhone', 'rhône': 'Rhone', 'lyon': 'Rhone', 'provence': 'Rhone'
+        'rhine': 'Rhine', 'cologne': 'Rhine', 'basel': 'Rhine',
+        'douro': 'Douro', 'porto': 'Douro',
+        'rhone': 'Rhone', 'rhône': 'Rhone', 'lyon': 'Rhone', 'provence': 'Rhone',
+        'seine': 'Seine', 'paris': 'Seine',
+        'mekong': 'Mekong', 'vietnam': 'Mekong', 'cambodia': 'Mekong',
+        'nile': 'Nile', 'egypt': 'Nile',
+        // Ocean regions
+        'caribbean': 'Caribbean', 'bahamas': 'Caribbean', 'jamaica': 'Caribbean',
+        'mediterranean': 'Mediterranean', 'greek': 'Mediterranean', 'italy': 'Mediterranean', 'spain': 'Mediterranean',
+        'alaska': 'Alaska',
+        'northern europe': 'Northern Europe', 'norway': 'Northern Europe', 'scandinavia': 'Northern Europe', 'fjords': 'Northern Europe',
+        'asia': 'Asia', 'japan': 'Asia', 'singapore': 'Asia',
+        'pacific': 'Pacific', 'hawaii': 'Pacific',
+        'south america': 'South America', 'brazil': 'South America',
+        'australia': 'Australia & New Zealand', 'new zealand': 'Australia & New Zealand'
       };
       for (const [keyword, region] of Object.entries(regions)) {
         if (msg.includes(keyword)) {
