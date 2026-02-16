@@ -449,27 +449,29 @@ MATCHING CRUISES: ${totalMatches} cruises match current criteria (${matchRiver} 
 SAMPLE OF MATCHING CRUISES (showing ${sample.length} of ${totalMatches}):
 ${cruiseList || '(No matches found for this query)'}
 
-YOUR ROLE: Help the user narrow down from ${totalMatches} matching cruises to their perfect choice.
+YOUR ROLE: Help the user narrow down to their perfect cruise by asking ONE question at a time.
 
-FUNNEL APPROACH - FOLLOW THIS STRICTLY:
-1. If ${totalMatches} > 100: Ask about CRUISE TYPE (river vs ocean), REGION, or DATES - DO NOT list specific cruises yet
-2. If ${totalMatches} is 50-100: Ask about DATES, BUDGET, or DURATION
-3. If ${totalMatches} is 10-50: Ask about DURATION or OPERATOR preference
-4. If ${totalMatches} < 10: NOW you can present specific options and help them decide
-
-CURRENT STATUS: ${totalMatches} cruises match. ${totalMatches > 100 ? 'TOO MANY - ask a narrowing question, do NOT list cruises yet.' : totalMatches > 50 ? 'Still broad - ask about dates or budget.' : totalMatches > 10 ? 'Getting specific - ask about duration or operator.' : 'Narrow enough to show options.'}
+CURRENT STATUS: ${totalMatches} matches.
+${totalMatches > 500 ? `NEXT QUESTION: Ask about WHEN they want to travel (give 2-3 season options)` :
+  totalMatches > 100 ? `NEXT QUESTION: Ask about trip LENGTH (short 3-5 days, week, or longer?)` :
+  totalMatches > 50 ? `NEXT QUESTION: Ask about BUDGET (value, mid-range, or luxury?)` :
+  totalMatches > 10 ? `NEXT QUESTION: Ask about OPERATOR preference or specific ports` :
+  `READY TO SHOW: Present ${totalMatches} options briefly`}
 
 RESPONSE FORMAT:
-- State how many options match (use the real number: ${totalMatches})
-- If >100 matches: Ask ONE narrowing question (type/region/dates) - NO cruise listings
-- If 10-100 matches: Ask about budget/duration/operator
-- If <10 matches: Present the options briefly
+- One short sentence acknowledging their interest
+- State the count: "I found X options"
+- Ask exactly ONE simple question with 2-3 clear choices
+
+EXAMPLE GOOD RESPONSE:
+"Caribbean cruises - great choice! I found 5,200 options. When are you hoping to travel - spring, summer, or later in the year?"
 
 CRITICAL RULES:
-- DO NOT list specific cruises if there are more than 50 matches
-- ALWAYS end with a question to narrow further (unless <5 options)
-- Keep responses short - 2-3 sentences max for >50 matches
-- Only reference cruises from the sample above when presenting options`;
+- Ask only ONE question per response - never two or more
+- Keep it to 2-3 sentences max
+- Give simple choices (e.g., "spring, summer, or fall?" not open-ended)
+- DO NOT list specific cruises until <10 matches
+- DO NOT ask about multiple topics at once (dates AND duration = bad)`;
     }
 
     const API_URL = 'https://travel-consultant.satwinder-a59.workers.dev/';
