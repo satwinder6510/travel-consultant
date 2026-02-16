@@ -508,37 +508,42 @@ Or just type what you're looking for and I'll help narrow it down!` }
         `• ${c.ref}: "${c.name}" by ${c.operator} on ${c.ship} | ${c.region} | ${c.nights}N | ${c.start?.split('T')[0]} | ${c.from}→${c.to} | ${c.rating} | £${c.price} | TYPE: ${c.type || 'unknown'}`
       ).join('\n');
 
-      return `You are a cruise consultant with access to BOTH river and ocean cruises.
+      // Get cheapest 5 for the prompt
+      const cheapest5 = [...filteredCruises]
+        .sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
+        .slice(0, 5);
 
-DATABASE: ${CRUISES.length} total (${riverCount} river, ${oceanCount} ocean)
-MATCHING CRUISES: ${totalMatches} cruises match current criteria (${matchRiver} river, ${matchOcean} ocean)
+      const cheapestList = cheapest5.map(c =>
+        `• £${c.price} - "${c.name}" by ${c.operator} | ${c.ship} | ${c.region} | ${c.nights} nights | ${c.start?.split('T')[0]}`
+      ).join('\n');
 
-SAMPLE OF MATCHING CRUISES (showing ${sample.length} of ${totalMatches}):
-${cruiseList || '(No matches found for this query)'}
+      // After 2 turns, stop asking questions and present results
+      const presentResults = userTurns >= 2;
 
-YOUR ROLE: Help the user narrow down to their perfect cruise by asking ONE question at a time.
+      return `You are a cruise consultant.
 
-CURRENT STATUS: ${totalMatches} matches.
-${totalMatches > 500 ? `NEXT QUESTION: Ask about WHEN they want to travel (give 2-3 season options)` :
-  totalMatches > 100 ? `NEXT QUESTION: Ask about trip LENGTH (short 3-5 days, week, or longer?)` :
-  totalMatches > 50 ? `NEXT QUESTION: Ask about BUDGET (value, mid-range, or luxury?)` :
-  totalMatches > 10 ? `NEXT QUESTION: Ask about OPERATOR preference or specific ports` :
-  `READY TO SHOW: Present ${totalMatches} options briefly`}
+MATCHING CRUISES: ${totalMatches} cruises match (${matchRiver} river, ${matchOcean} ocean)
+
+CHEAPEST 5 OPTIONS:
+${cheapestList}
+
+${presentResults ? `
+ACTION: Present these 5 cheapest options. The user has already answered enough questions.
 
 RESPONSE FORMAT:
-- One short sentence acknowledging their interest
-- State the count: "I found X options"
-- Ask exactly ONE simple question with 2-3 clear choices
+- "I found ${totalMatches} cruises matching your criteria. Here are the best value options:"
+- Briefly describe each of the 5 cheapest cruises (1 line each)
+- End with: "Would you like more details on any of these, or should I filter differently?"
 
-EXAMPLE GOOD RESPONSE:
-"Caribbean cruises - great choice! I found 5,200 options. When are you hoping to travel - spring, summer, or later in the year?"
+DO NOT ask more narrowing questions. Show results now.
+` : `
+ACTION: Ask ONE quick question to narrow the search.
 
-CRITICAL RULES:
-- Ask only ONE question per response - never two or more
-- Keep it to 2-3 sentences max
-- Give simple choices (e.g., "spring, summer, or fall?" not open-ended)
-- DO NOT list specific cruises until <10 matches
-- DO NOT ask about multiple topics at once (dates AND duration = bad)`;
+RESPONSE FORMAT:
+- "I found ${totalMatches} options. [ONE simple question with 2-3 choices]"
+
+Keep it to 1-2 sentences. Do not list cruises yet.
+`}`;
     }
 
     const API_URL = 'https://travel-consultant.satwinder-a59.workers.dev/';
