@@ -122,8 +122,9 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
     // APP STATE
     // ========================================================================
     let currentFilters = { query: '' };
-    let filteredCruises = [];
-    let userTurns = 0; // Track conversation depth
+    let filteredCruises = [];    // Full filtered list (for real count)
+    let sampleCruises = [];      // Sliced sample for display/prompt
+    let userTurns = 0;           // Track conversation depth
 
     let messages = [
       { role: 'assistant', content: `Hello! I'm your cruise consultant. I can help you find the perfect river or ocean cruise.
@@ -390,9 +391,14 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
         }
       }
 
-      // If no filters matched, show a diverse sample (not just first 30)
+      // Return the FULL filtered list (don't slice here - let caller decide)
+      return filtered;
+    }
+
+    // Get a diverse sample for the prompt (max 30)
+    function getSampleCruises(filtered) {
       if (filtered.length === CRUISES.length) {
-        // Get a mix of different operators and types
+        // No filters - get diverse mix
         const sample = [];
         const operators = [...new Set(CRUISES.map(c => c.operator))];
         const perOperator = Math.ceil(30 / Math.min(operators.length, 15));
@@ -403,22 +409,21 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
         }
         return sample.slice(0, 30);
       }
-
-      // Return top 30 matches
       return filtered.slice(0, 30);
     }
 
     function buildDynamicPrompt(userMessage) {
-      const matches = filterCruises(userMessage);
-      const matchCount = matches.length;
+      // Use the already-filtered list (set in sendMessage)
+      const totalMatches = filteredCruises.length;
+      const sample = getSampleCruises(filteredCruises);
 
       // Count river vs ocean in full database
       const riverCount = CRUISES.filter(c => c.type === 'river').length;
       const oceanCount = CRUISES.filter(c => c.type === 'ocean').length;
 
-      // Count types in matches
-      const matchRiver = matches.filter(c => c.type === 'river').length;
-      const matchOcean = matches.filter(c => c.type === 'ocean').length;
+      // Count types in ALL matches (not just sample)
+      const matchRiver = filteredCruises.filter(c => c.type === 'river').length;
+      const matchOcean = filteredCruises.filter(c => c.type === 'ocean').length;
 
       // Debug log
       console.log('Filter debug:', {
@@ -426,44 +431,45 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
         totalCruises: CRUISES.length,
         riverInDb: riverCount,
         oceanInDb: oceanCount,
-        matchesFound: matchCount,
+        totalMatches: totalMatches,
+        sampleSize: sample.length,
         matchRiver,
         matchOcean
       });
 
-      const cruiseList = matches.map(c =>
+      const cruiseList = sample.map(c =>
         `• ${c.ref}: "${c.name}" by ${c.operator} on ${c.ship} | ${c.region} | ${c.nights}N | ${c.start?.split('T')[0]} | ${c.from}→${c.to} | ${c.rating} | £${c.price} | TYPE: ${c.type || 'unknown'}`
       ).join('\n');
 
       return `You are a cruise consultant with access to BOTH river and ocean cruises.
 
 DATABASE: ${CRUISES.length} total (${riverCount} river, ${oceanCount} ocean)
-FILTERED RESULTS: ${matchCount} cruises (${matchRiver} river, ${matchOcean} ocean)
+MATCHING CRUISES: ${totalMatches} cruises match current criteria (${matchRiver} river, ${matchOcean} ocean)
 
-SAMPLE CRUISES:
+SAMPLE OF MATCHING CRUISES (showing ${sample.length} of ${totalMatches}):
 ${cruiseList || '(No matches found for this query)'}
 
-YOUR ROLE: Help the user narrow down from ${CRUISES.length} cruises to their perfect choice.
+YOUR ROLE: Help the user narrow down from ${totalMatches} matching cruises to their perfect choice.
 
-FUNNEL APPROACH:
-1. If >100 matches: Ask about CRUISE TYPE (river vs ocean) or REGION
-2. If 50-100 matches: Ask about DATES or BUDGET
-3. If 10-50 matches: Ask about DURATION or OPERATOR preference
-4. If <10 matches: Present the options and help them DECIDE
+FUNNEL APPROACH - FOLLOW THIS STRICTLY:
+1. If ${totalMatches} > 100: Ask about CRUISE TYPE (river vs ocean), REGION, or DATES - DO NOT list specific cruises yet
+2. If ${totalMatches} is 50-100: Ask about DATES, BUDGET, or DURATION
+3. If ${totalMatches} is 10-50: Ask about DURATION or OPERATOR preference
+4. If ${totalMatches} < 10: NOW you can present specific options and help them decide
 
-CURRENT STATUS: ${matchCount} cruises match their criteria.
+CURRENT STATUS: ${totalMatches} cruises match. ${totalMatches > 100 ? 'TOO MANY - ask a narrowing question, do NOT list cruises yet.' : totalMatches > 50 ? 'Still broad - ask about dates or budget.' : totalMatches > 10 ? 'Getting specific - ask about duration or operator.' : 'Narrow enough to show options.'}
 
 RESPONSE FORMAT:
-- Acknowledge their criteria briefly
-- State how many options remain
-- Ask ONE clear follow-up question with 2-3 specific options
-- Example: "That narrows it to 45 Mediterranean cruises! When are you looking to travel? Summer 2026 has the most options, or September offers better prices."
+- State how many options match (use the real number: ${totalMatches})
+- If >100 matches: Ask ONE narrowing question (type/region/dates) - NO cruise listings
+- If 10-100 matches: Ask about budget/duration/operator
+- If <10 matches: Present the options briefly
 
-RULES:
+CRITICAL RULES:
+- DO NOT list specific cruises if there are more than 50 matches
 - ALWAYS end with a question to narrow further (unless <5 options)
-- Keep responses short and focused
-- Only reference cruises from the data above
-- If <5 options, present each briefly and ask which appeals most`;
+- Keep responses short - 2-3 sentences max for >50 matches
+- Only reference cruises from the sample above when presenting options`;
     }
 
     const API_URL = 'https://travel-consultant.satwinder-a59.workers.dev/';
