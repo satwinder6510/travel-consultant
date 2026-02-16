@@ -26,7 +26,7 @@
     async function loadCruiseData() {
       try {
         const [cruisesRes, shipsRes, operatorsRes] = await Promise.all([
-          fetch('cruise-data-cruises.json'),
+          fetch('cruise-data-all.json'),
           fetch('cruise-data-ships.json'),
           fetch('cruise-data-operators.json')
         ]);
