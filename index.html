@@ -214,8 +214,22 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       render();
     }
 
-    // Get cheapest cruise per operator
-    function getCheapestPerOperator(cruises, limit = 5) {
+    // Get best cruise options - smart about single vs multiple operators
+    function getBestCruises(cruises, limit = 5) {
+      if (cruises.length === 0) return [];
+
+      // Count operators in results
+      const operators = new Set(cruises.map(c => c.operator));
+
+      // If mostly one operator (>80% of results), show cheapest from that operator
+      if (operators.size === 1 || cruises.length <= 10) {
+        // Single operator or small set - just show cheapest overall
+        return [...cruises]
+          .sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
+          .slice(0, limit);
+      }
+
+      // Multiple operators - show cheapest per operator for variety
       const byOperator = {};
       for (const c of cruises) {
         const op = c.operator || 'Unknown';
@@ -226,6 +240,15 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       return Object.values(byOperator)
         .sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
         .slice(0, limit);
+    }
+
+    // Get smart header for cards section
+    function getCardsHeader(cruises) {
+      const operators = new Set(cruises.map(c => c.operator));
+      if (operators.size === 1) {
+        return `Best ${[...operators][0]} prices`;
+      }
+      return 'Best price per cruise line';
     }
 
     // ========================================================================
@@ -297,15 +320,15 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
           </div>
         </div>
 
-        <!-- Cruise Cards - Cheapest per cruise line after 2+ interactions -->
+        <!-- Cruise Cards - Best options after 2+ interactions -->
         ${userTurns >= 2 && displayCruises.length > 0 ? `
         <div class="border-t bg-gradient-to-b from-green-50 to-white p-3">
           <div class="max-w-4xl mx-auto">
             <div class="flex justify-between items-center mb-2">
-              <span class="text-sm font-semibold text-green-800">💰 Best price per cruise line (${displayCruises.length.toLocaleString()} matches)</span>
+              <span class="text-sm font-semibold text-green-800">💰 ${getCardsHeader(displayCruises)} (${displayCruises.length.toLocaleString()} matches)</span>
             </div>
             <div class="flex gap-2 overflow-x-auto pb-2">
-              ${getCheapestPerOperator(displayCruises, 5).map(c => `
+              ${getBestCruises(displayCruises, 5).map(c => `
                 <div class="flex-shrink-0 w-56 bg-white rounded-lg p-3 shadow-sm border text-xs hover:shadow-md transition-shadow cursor-pointer">
                   <div class="font-bold text-blue-800 truncate">${c.operator}</div>
                   <div class="text-gray-700 truncate">${c.ship}</div>
@@ -584,10 +607,13 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       ).join('\n');
 
       // Get cheapest per cruise line for the prompt
-      const cheapestPerLine = getCheapestPerOperator(filteredCruises, 5);
+      const bestCruises = getBestCruises(filteredCruises, 5);
+      const operators = new Set(filteredCruises.map(c => c.operator));
+      const isSingleOperator = operators.size === 1;
+      const operatorName = isSingleOperator ? [...operators][0] : '';
 
-      const cheapestList = cheapestPerLine.map(c =>
-        `• ${c.operator}: from £${c.price} - ${c.ship} | ${c.region} | ${c.nights} nights | ${c.start?.split('T')[0]}`
+      const cheapestList = bestCruises.map(c =>
+        `• ${isSingleOperator ? '' : c.operator + ': '}£${c.price} - ${c.ship} | ${c.region} | ${c.nights} nights | ${c.start?.split('T')[0]}`
       ).join('\n');
 
       // After 2 turns, stop asking questions and present results
@@ -597,17 +623,17 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
 
 TODAY'S DATE: ${TODAY} - Only suggest dates from ${TODAY} onwards. NEVER mention 2025 - it's now 2026!
 
-MATCHING CRUISES: ${totalMatches} cruises match (${matchRiver} river, ${matchOcean} ocean)
+MATCHING CRUISES: ${totalMatches} ${isSingleOperator ? operatorName + ' ' : ''}cruises match
 
-BEST PRICE PER CRUISE LINE:
+${isSingleOperator ? `BEST ${operatorName.toUpperCase()} OPTIONS:` : 'BEST PRICE PER CRUISE LINE:'}
 ${cheapestList}
 
 ${presentResults ? `
-ACTION: Show best price from each cruise line AND mention the filter buttons.
+ACTION: Show the best options${isSingleOperator ? ' from ' + operatorName : ' from each cruise line'} AND mention the filter buttons.
 
 RESPONSE FORMAT:
-- "From ${totalMatches} matches, here's the best price per cruise line:"
-- List each operator with their cheapest option (one line each)
+- "From ${totalMatches} ${isSingleOperator ? operatorName + ' ' : ''}matches, here are the best options:"
+- List each cruise (ship, destination, nights, price, date) - one line each
 - End with: "Use the filter buttons below to narrow by dates, duration, or budget."
 
 Show results and point them to the filters.
