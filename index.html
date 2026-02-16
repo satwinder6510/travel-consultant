@@ -323,11 +323,13 @@ ${cruiseList || '(No exact matches - suggest alternatives from general knowledge
 
 INSTRUCTIONS:
 - Current year is 2026 - all cruise data is current and recently updated
+- Give COMPLETE, DETAILED responses - don't cut off mid-answer
+- For each recommended cruise, include: name, ship, dates, price, highlights
 - Quote specific cruise names, dates, prices, and ship names
 - If few matches, explain why and suggest adjusting criteria
 - Ask follow-up questions to refine: dates, budget, cabin type, group size
 - Use your general knowledge for destinations, tips, operator comparisons
-- Be concise but helpful`;
+- Provide 2-3 options when recommending cruises`;
     }
 
     const API_URL = 'https://travel-consultant.satwinder-a59.workers.dev/';
@@ -349,8 +351,8 @@ INSTRUCTIONS:
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'claude-3-haiku-20240307',
-            max_tokens: 1024,
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 2048,
             system: buildDynamicPrompt(text),
             messages: messages.map(m => ({ role: m.role, content: m.content }))
           })
