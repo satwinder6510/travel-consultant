@@ -412,11 +412,12 @@ CRITICAL RULES:
 
 INSTRUCTIONS:
 - Current year is 2026 - all data is current
-- For each cruise: include name, ref code, ship, dates, price from the data above
-- If few matches, suggest adjusting criteria (different dates, budget, region)
-- Ask follow-up questions: river vs ocean, dates, budget, cabin type
-- You may use general knowledge for destination tips and travel advice
-- Provide 2-3 options when possible`;
+- Show TOP 3-5 best matches with: name, ref, ship, dates, price
+- Briefly mention total matches found (e.g., "Found 30 options, here are the best:")
+- For each recommendation: one line with key details
+- If few matches, suggest adjusting criteria
+- Ask follow-up questions to narrow down: dates, budget, cabin type
+- Keep responses concise - bullet points preferred`;
     }
 
     const API_URL = 'https://travel-consultant.satwinder-a59.workers.dev/';
@@ -481,7 +482,7 @@ INSTRUCTIONS:
           },
           body: JSON.stringify({
             model: 'claude-sonnet-4-20250514',
-            max_tokens: 2048,
+            max_tokens: 4096,
             system: buildDynamicPrompt(text),
             messages: messages.map(m => ({ role: m.role, content: m.content }))
           })
