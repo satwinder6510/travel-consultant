@@ -251,16 +251,15 @@ Or just type what you're looking for and I'll help narrow it down!` }
           </div>
         </div>
 
-        <!-- Cruise Cards - Only show after 3+ questions AND refined results -->
-        ${userTurns >= 3 && filteredCruises.length <= 50 && filteredCruises.length > 0 ? `
-        <div class="border-t bg-gradient-to-b from-blue-50 to-white p-3">
+        <!-- Cruise Cards - Show cheapest 5 after 2+ interactions -->
+        ${userTurns >= 2 && filteredCruises.length > 0 ? `
+        <div class="border-t bg-gradient-to-b from-green-50 to-white p-3">
           <div class="max-w-4xl mx-auto">
             <div class="flex justify-between items-center mb-2">
-              <span class="text-sm font-semibold text-blue-900">Top matches</span>
-              <span class="text-xs text-gray-500">${filteredCruises.length} cruises</span>
+              <span class="text-sm font-semibold text-green-800">💰 Cheapest 5 from ${filteredCruises.length.toLocaleString()} matches</span>
             </div>
             <div class="flex gap-2 overflow-x-auto pb-2">
-              ${filteredCruises.slice(0, 8).map(c => `
+              ${[...filteredCruises].sort((a, b) => parseFloat(a.price) - parseFloat(b.price)).slice(0, 5).map(c => `
                 <div class="flex-shrink-0 w-56 bg-white rounded-lg p-3 shadow-sm border text-xs hover:shadow-md transition-shadow cursor-pointer">
                   <div class="font-semibold text-blue-900 truncate">${c.name}</div>
                   <div class="text-gray-600 truncate">${c.ship} &bull; ${c.operator}</div>
