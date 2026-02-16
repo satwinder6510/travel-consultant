@@ -333,6 +333,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
                   <div class="font-bold text-blue-800 truncate">${c.operator}</div>
                   <div class="text-gray-700 truncate">${c.ship}</div>
                   <div class="text-gray-500">${c.region} &bull; ${c.nights}N</div>
+                  <div class="text-gray-500 truncate">📍 ${c.from || 'TBC'}</div>
                   <div class="text-blue-600 font-medium">⛵ ${c.start ? new Date(c.start).toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'}) : 'TBC'}</div>
                   <div class="flex justify-between items-center mt-1">
                     <span class="text-green-700 font-bold">£${parseFloat(c.price).toLocaleString()}</span>

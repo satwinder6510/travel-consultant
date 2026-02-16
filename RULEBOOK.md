@@ -83,6 +83,7 @@ This document tracks all UX decisions, bug fixes, and refinements made to the cr
 - Operator name (bold)
 - Ship name
 - Region + nights
+- Embarkation port with emoji: 📍 Miami
 - Sailing date with emoji: ⛵ 16 Mar 2026
 - Price: £X,XXX
 - Type badge: ocean/river
