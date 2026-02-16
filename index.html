@@ -128,7 +128,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
 • Who's joining you?
 • Any rivers catching your eye? (Danube, Rhine, Douro, Rhône)` }
     ];
-    let apiKey = '';
+    let apiKey = localStorage.getItem('anthropic_api_key') || '';
     let isLoading = false;
 
     // ========================================================================
@@ -232,6 +232,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
 
     function saveApiKey() {
       apiKey = document.getElementById('apiKeyInput').value;
+      localStorage.setItem('anthropic_api_key', apiKey);
       render();
     }
 
