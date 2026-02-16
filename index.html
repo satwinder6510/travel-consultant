@@ -154,7 +154,18 @@ Or just type what you're looking for and I'll help narrow it down!` }
       } else {
         selectedFilters.add(filter);
       }
+      // Update filtered cruises based on current selections
+      updateFilteredCruises();
       render();
+    }
+
+    function updateFilteredCruises() {
+      if (selectedFilters.size === 0) {
+        filteredCruises = [...CRUISES];
+        return;
+      }
+      const filters = Array.from(selectedFilters).join(' ').toLowerCase();
+      filteredCruises = filterCruises(filters);
     }
 
     function applyFilters() {
@@ -163,6 +174,12 @@ Or just type what you're looking for and I'll help narrow it down!` }
       document.getElementById('messageInput').value = filterText;
       selectedFilters.clear();
       sendMessage();
+    }
+
+    function clearFilters() {
+      selectedFilters.clear();
+      filteredCruises = [...CRUISES];
+      render();
     }
 
     // ========================================================================
@@ -287,15 +304,15 @@ Or just type what you're looking for and I'll help narrow it down!` }
               ).join('')}
             </div>
             ${selectedFilters.size > 0 ? `
-              <div class="flex items-center gap-2">
-                <span class="text-sm text-gray-600">${selectedFilters.size} selected</span>
+              <div class="flex items-center gap-3 mt-2 p-2 bg-green-50 rounded-lg border border-green-200">
+                <span class="text-sm font-medium text-green-800">${selectedFilters.size} filter${selectedFilters.size > 1 ? 's' : ''} selected</span>
                 <button onclick="applyFilters()"
-                  class="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-full hover:bg-blue-700 transition-colors">
-                  Search with these filters
+                  class="px-5 py-2 bg-green-600 text-white text-sm font-bold rounded-full hover:bg-green-700 transition-colors shadow-md">
+                  🔍 Find Cruises
                 </button>
-                <button onclick="selectedFilters.clear(); render()"
-                  class="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700">
-                  Clear
+                <button onclick="clearFilters()"
+                  class="px-3 py-1.5 text-sm text-gray-500 hover:text-red-600">
+                  ✕ Clear
                 </button>
               </div>
             ` : `
