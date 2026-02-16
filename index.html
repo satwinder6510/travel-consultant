@@ -57,18 +57,18 @@
         `• ${c.ref}: "${c.name}" by ${c.operator} | ${c.region} | ${c.nights}N | ${c.start} | ${c.from}→${c.to} | ${c.rating} | £${c.price}`
       ).join('\n');
 
-      // River ships only with key stats
-      const riverShips = SHIPS.filter(s => s.type === 'river').slice(0, 50);
-      const shipList = riverShips.map(s =>
-        `• ${s.name}: ${s.operator} | ${s.capacity || '?'} guests | Built ${s.year || '?'} | ${s.size || ''}`
+      // Sample ships (mix of river and ocean)
+      const sampleShips = SHIPS.slice(0, 50);
+      const shipList = sampleShips.map(s =>
+        `• ${s.name}: ${s.operator} | ${s.capacity || '?'} guests | Built ${s.year || '?'} | ${s.type || ''}`
       ).join('\n');
 
-      SYSTEM_PROMPT = `You are an expert river cruise consultant with real cruise inventory. Always recommend SPECIFIC cruises from the data below with actual prices and dates.
+      SYSTEM_PROMPT = `You are an expert cruise consultant for BOTH river and ocean cruises. Always recommend SPECIFIC cruises from the data below with actual prices and dates.
 
 CRUISE INVENTORY (${CRUISES.length} total, showing sample):
 ${cruiseList}
 
-SHIPS (${riverShips.length} river ships):
+SHIPS (${sampleShips.length} ships):
 ${shipList}
 
 QUERY HANDLING:
@@ -159,7 +159,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
             </div>
             <div class="text-right text-sm text-blue-200">
               <div>${CRUISES.length} cruises</div>
-              <div>${SHIPS.filter(s => s.type === 'river').length} ships</div>
+              <div>${SHIPS.length} ships</div>
             </div>
           </div>
         </header>
