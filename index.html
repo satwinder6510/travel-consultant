@@ -332,7 +332,21 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
         }
       }
 
-      // Return top 30 matches (limit for prompt size)
+      // If no filters matched, show a diverse sample (not just first 30)
+      if (filtered.length === CRUISES.length) {
+        // Get a mix of different operators and types
+        const sample = [];
+        const operators = [...new Set(CRUISES.map(c => c.operator))];
+        const perOperator = Math.ceil(30 / Math.min(operators.length, 15));
+        for (const op of operators.slice(0, 15)) {
+          const opCruises = CRUISES.filter(c => c.operator === op).slice(0, perOperator);
+          sample.push(...opCruises);
+          if (sample.length >= 30) break;
+        }
+        return sample.slice(0, 30);
+      }
+
+      // Return top 30 matches
       return filtered.slice(0, 30);
     }
 
@@ -340,13 +354,20 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       const matches = filterCruises(userMessage);
       const matchCount = matches.length;
 
+      // Count river vs ocean in full database
+      const riverCount = CRUISES.filter(c => c.type === 'river').length;
+      const oceanCount = CRUISES.filter(c => c.type === 'ocean').length;
+
       const cruiseList = matches.map(c =>
-        `• ${c.ref}: "${c.name}" by ${c.operator} on ${c.ship} | ${c.region} | ${c.nights}N | ${c.start?.split('T')[0]} | ${c.from}→${c.to} | ${c.rating} | £${c.price} (balcony: £${c.balcony || 'N/A'})`
+        `• ${c.ref}: "${c.name}" by ${c.operator} on ${c.ship} | ${c.region} | ${c.nights}N | ${c.start?.split('T')[0]} | ${c.from}→${c.to} | ${c.rating} | £${c.price} | TYPE: ${c.type || 'river'}`
       ).join('\n');
 
-      return `You are a cruise consultant. You MUST ONLY recommend cruises from the list below. NEVER invent or make up cruise names, prices, or details.
+      return `You are a cruise consultant with access to BOTH river and ocean cruises.
 
-AVAILABLE CRUISES (${matchCount} matches from ${CRUISES.length} total):
+FULL DATABASE: ${CRUISES.length} cruises (${riverCount} river, ${oceanCount} ocean)
+MATCHING QUERY: ${matchCount} cruises shown below
+
+SAMPLE CRUISES:
 ${cruiseList || '(No matches found for this query)'}
 
 CRITICAL RULES:
