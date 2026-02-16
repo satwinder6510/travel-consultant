@@ -43,6 +43,7 @@
           c.start && c.start >= today &&
           c.price && parseFloat(c.price) > 0
         );
+        displayCruises = [...filteredCruises];
         console.log(`Loaded ${CRUISES.length} cruises, ${SHIPS.length} ships, ${OPERATORS.length} operators`);
         buildSystemPrompt();
         render();
@@ -131,7 +132,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
     // ========================================================================
     let currentFilters = { query: '' };
     let filteredCruises = [];    // Full filtered list (for real count)
-    let sampleCruises = [];      // Sliced sample for display/prompt
+    let displayCruises = [];     // Cached results for cards (synced with prompt)
     let userTurns = 0;           // Track conversation depth
     let accumulatedFilters = new Set(); // Persists across conversation
 
@@ -211,6 +212,7 @@ Or just type what you're looking for and I'll help narrow it down!` }
         c.start && c.start >= TODAY &&
         c.price && parseFloat(c.price) > 0
       );
+      displayCruises = [...filteredCruises];
       render();
     }
 
@@ -298,14 +300,14 @@ Or just type what you're looking for and I'll help narrow it down!` }
         </div>
 
         <!-- Cruise Cards - Cheapest per cruise line after 2+ interactions -->
-        ${userTurns >= 2 && filteredCruises.length > 0 ? `
+        ${userTurns >= 2 && displayCruises.length > 0 ? `
         <div class="border-t bg-gradient-to-b from-green-50 to-white p-3">
           <div class="max-w-4xl mx-auto">
             <div class="flex justify-between items-center mb-2">
-              <span class="text-sm font-semibold text-green-800">💰 Best price per cruise line (${filteredCruises.length.toLocaleString()} total matches)</span>
+              <span class="text-sm font-semibold text-green-800">💰 Best price per cruise line (${displayCruises.length.toLocaleString()} matches)</span>
             </div>
             <div class="flex gap-2 overflow-x-auto pb-2">
-              ${getCheapestPerOperator(filteredCruises, 5).map(c => `
+              ${getCheapestPerOperator(displayCruises, 5).map(c => `
                 <div class="flex-shrink-0 w-56 bg-white rounded-lg p-3 shadow-sm border text-xs hover:shadow-md transition-shadow cursor-pointer">
                   <div class="font-bold text-blue-800 truncate">${c.operator}</div>
                   <div class="text-gray-700 truncate">${c.ship}</div>
@@ -679,6 +681,7 @@ Keep it to 1-2 sentences. Do not list cruises yet.
       const allFilters = Array.from(accumulatedFilters).join(' ');
       currentFilters.query = allFilters;
       filteredCruises = filterCruises(allFilters);
+      displayCruises = [...filteredCruises]; // Cache for cards - same data Claude sees
       console.log('Filtering with accumulated:', allFilters, '→', filteredCruises.length);
 
       userTurns++; // Increment conversation depth
