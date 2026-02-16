@@ -347,6 +347,48 @@ INSTRUCTIONS:
 
     const API_URL = 'https://travel-consultant.satwinder-a59.workers.dev/';
 
+    // Validate Claude's response against our database
+    function validateResponse(responseText) {
+      const issues = [];
+
+      // Build sets of valid data for fast lookup
+      const validRefs = new Set(CRUISES.map(c => c.ref));
+      const validShips = new Set(CRUISES.map(c => c.ship?.toLowerCase()).filter(Boolean));
+      const validOperators = new Set(CRUISES.map(c => c.operator?.toLowerCase()).filter(Boolean));
+      const validCruiseNames = new Set(CRUISES.map(c => c.name?.toLowerCase()).filter(Boolean));
+
+      // Check for ref codes in response - they should match our data
+      const refPattern = /\b([A-Z]{2,}[A-Z0-9]{8,})\b/g;
+      const mentionedRefs = responseText.match(refPattern) || [];
+      const invalidRefs = mentionedRefs.filter(ref => !validRefs.has(ref));
+      if (invalidRefs.length > 0) {
+        issues.push(`Reference codes not found in database: ${invalidRefs.join(', ')}`);
+      }
+
+      // Check for ship names that look specific but don't exist
+      const suspiciousShips = ['MS Botticelli', 'MS Bellini', 'SS Eternal', 'MS Roma'];
+      for (const ship of suspiciousShips) {
+        if (responseText.toLowerCase().includes(ship.toLowerCase()) && !validShips.has(ship.toLowerCase())) {
+          issues.push(`Ship "${ship}" not found in database`);
+        }
+      }
+
+      // Check if response mentions specific prices without ref codes (likely hallucinated)
+      const hasPrices = /£\d{1,},?\d{3}/.test(responseText);
+      const hasRefs = mentionedRefs.some(ref => validRefs.has(ref));
+      if (hasPrices && !hasRefs && responseText.length > 500) {
+        issues.push('Prices mentioned without valid cruise reference codes');
+      }
+
+      return {
+        hasIssues: issues.length > 0,
+        warning: issues.length > 0
+          ? 'Some details may not be verified. Please confirm cruise availability before booking.'
+          : '',
+        details: issues
+      };
+    }
+
     async function sendMessage() {
       const input = document.getElementById('messageInput');
       const text = input.value.trim();
@@ -377,7 +419,12 @@ INSTRUCTIONS:
           const errMsg = data.error?.message || data.message || JSON.stringify(data);
           messages.push({ role: 'assistant', content: `API Error (${response.status}): ${errMsg}` });
         } else if (data.content && data.content[0]) {
-          messages.push({ role: 'assistant', content: data.content[0].text });
+          let responseText = data.content[0].text;
+          const validation = validateResponse(responseText);
+          if (validation.hasIssues) {
+            responseText += `\n\n⚠️ **Notice:** ${validation.warning}`;
+          }
+          messages.push({ role: 'assistant', content: responseText });
         } else {
           messages.push({ role: 'assistant', content: 'Unexpected response format. Check console for details.' });
         }
