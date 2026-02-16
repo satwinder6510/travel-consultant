@@ -528,14 +528,14 @@ CHEAPEST 5 OPTIONS:
 ${cheapestList}
 
 ${presentResults ? `
-ACTION: Present these 5 cheapest options. The user has already answered enough questions.
+ACTION: Show these 5 cheapest options AND ask a refinement question.
 
 RESPONSE FORMAT:
-- "I found ${totalMatches} cruises matching your criteria. Here are the best value options:"
-- Briefly describe each of the 5 cheapest cruises (1 line each)
-- End with: "Would you like more details on any of these, or should I filter differently?"
+- "From ${totalMatches} matches, here are the best value options:"
+- List the 5 cheapest (ship, destination, nights, price) - keep each to ONE line
+- Then ask ONE refinement question: "Want to filter by [duration/budget/operator/dates]?"
 
-DO NOT ask more narrowing questions. Show results now.
+Show results but keep helping them narrow down.
 ` : `
 ACTION: Ask ONE quick question to narrow the search.
 
