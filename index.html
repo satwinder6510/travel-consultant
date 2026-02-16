@@ -175,14 +175,18 @@ Or just type what you're looking for and I'll help narrow it down!` }
         );
         return;
       }
-      const filters = Array.from(selectedFilters).join(' ').toLowerCase();
+      // Join all selected filters into one search string
+      const filters = Array.from(selectedFilters).join(' ');
       filteredCruises = filterCruises(filters);
+      console.log('Live filter:', filters, '→', filteredCruises.length, 'results');
     }
 
     function applyFilters() {
       if (selectedFilters.size === 0) return;
-      const filterText = Array.from(selectedFilters).join(', ');
+      // Use same format as updateFilteredCruises
+      const filterText = Array.from(selectedFilters).join(' ');
       document.getElementById('messageInput').value = filterText;
+      console.log('Applying filters:', filterText);
       selectedFilters.clear();
       sendMessage();
     }
@@ -367,12 +371,14 @@ Or just type what you're looking for and I'll help narrow it down!` }
 
     function filterCruises(userMessage) {
       const msg = userMessage.toLowerCase();
+      console.log('Filtering with:', msg);
 
       // Start with future cruises only, with valid prices
       let filtered = CRUISES.filter(c =>
         c.start && c.start >= TODAY &&
         c.price && parseFloat(c.price) > 0
       );
+      console.log('After date/price filter:', filtered.length);
 
       // Cruise type filter (river vs ocean)
       const oceanKeywords = [
@@ -384,8 +390,10 @@ Or just type what you're looking for and I'll help narrow it down!` }
 
       if (riverKeywords.some(k => msg.includes(k))) {
         filtered = filtered.filter(c => c.type === 'river');
+        console.log('After river filter:', filtered.length);
       } else if (oceanKeywords.some(k => msg.includes(k))) {
         filtered = filtered.filter(c => c.type === 'ocean');
+        console.log('After ocean filter:', filtered.length);
       }
 
       // Region filters (river + ocean)
@@ -413,6 +421,7 @@ Or just type what you're looking for and I'll help narrow it down!` }
           filtered = filtered.filter(c =>
             c.region && c.region.toLowerCase().includes(region.toLowerCase())
           );
+          console.log('After region filter (' + region + '):', filtered.length);
           break;
         }
       }
@@ -439,20 +448,25 @@ Or just type what you're looking for and I'll help narrow it down!` }
       // Duration filters - handle specific ranges from filter buttons
       if (msg.includes('3-5 nights') || msg.includes('3-5 night')) {
         filtered = filtered.filter(c => c.nights >= 3 && c.nights <= 5);
+        console.log('After 3-5 nights filter:', filtered.length);
       } else if (msg.includes('7 night')) {
         filtered = filtered.filter(c => c.nights >= 6 && c.nights <= 8);
+        console.log('After 7 nights filter:', filtered.length);
       } else if (msg.includes('10-14 night')) {
         filtered = filtered.filter(c => c.nights >= 10 && c.nights <= 14);
+        console.log('After 10-14 nights filter:', filtered.length);
       } else {
         // Fallback: try to parse a single number
         const nightsMatch = msg.match(/(\d+)\s*(?:night|day)/);
         if (nightsMatch) {
           const nights = parseInt(nightsMatch[1]);
           filtered = filtered.filter(c => Math.abs(c.nights - nights) <= 1);
+          console.log('After ' + nights + ' nights filter:', filtered.length);
         }
       }
       if (msg.includes('week')) {
         filtered = filtered.filter(c => c.nights >= 6 && c.nights <= 8);
+        console.log('After week filter:', filtered.length);
       }
 
       // Date/month filters
