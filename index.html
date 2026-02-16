@@ -436,15 +436,23 @@ Or just type what you're looking for and I'll help narrow it down!` }
         }
       }
 
-      // Duration filters
-      const nightsMatch = msg.match(/(\d+)\s*(?:night|day|week)/);
-      if (nightsMatch) {
-        const nights = parseInt(nightsMatch[1]);
-        if (msg.includes('week')) {
-          filtered = filtered.filter(c => c.nights >= 6 && c.nights <= 8);
-        } else {
+      // Duration filters - handle specific ranges from filter buttons
+      if (msg.includes('3-5 nights') || msg.includes('3-5 night')) {
+        filtered = filtered.filter(c => c.nights >= 3 && c.nights <= 5);
+      } else if (msg.includes('7 night')) {
+        filtered = filtered.filter(c => c.nights >= 6 && c.nights <= 8);
+      } else if (msg.includes('10-14 night')) {
+        filtered = filtered.filter(c => c.nights >= 10 && c.nights <= 14);
+      } else {
+        // Fallback: try to parse a single number
+        const nightsMatch = msg.match(/(\d+)\s*(?:night|day)/);
+        if (nightsMatch) {
+          const nights = parseInt(nightsMatch[1]);
           filtered = filtered.filter(c => Math.abs(c.nights - nights) <= 1);
         }
+      }
+      if (msg.includes('week')) {
+        filtered = filtered.filter(c => c.nights >= 6 && c.nights <= 8);
       }
 
       // Date/month filters
