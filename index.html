@@ -154,16 +154,25 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       }
 
       app.innerHTML = `
-        <!-- Header -->
+        <!-- Header with progress -->
         <header class="bg-blue-900 text-white p-4 shadow-lg">
           <div class="max-w-4xl mx-auto flex items-center justify-between">
             <div>
               <h1 class="text-2xl font-bold">Cruise Consultant</h1>
               <p class="text-blue-200 text-sm">Find your perfect river or ocean cruise</p>
             </div>
-            <div class="text-right text-sm text-blue-200">
-              <div>${CRUISES.length} cruises</div>
-              <div>${SHIPS.length} ships</div>
+            <div class="text-right">
+              <div class="text-2xl font-bold">${filteredCruises.length.toLocaleString()}</div>
+              <div class="text-xs text-blue-200">
+                ${filteredCruises.length === CRUISES.length ? 'cruises available' :
+                  filteredCruises.length > 100 ? 'options remaining' :
+                  filteredCruises.length > 10 ? 'getting closer' :
+                  filteredCruises.length > 0 ? 'almost there!' : 'no matches'}
+              </div>
+              <div class="w-24 bg-blue-800 rounded-full h-1 mt-1">
+                <div class="bg-blue-300 h-1 rounded-full transition-all duration-500"
+                     style="width: ${Math.max(5, 100 - (filteredCruises.length / CRUISES.length * 100))}%"></div>
+              </div>
             </div>
           </div>
         </header>
@@ -192,50 +201,6 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
                   </div>
                 </div>
               </div>
-            ` : ''}
-          </div>
-        </div>
-
-        <!-- Refinement Progress & Cruise Cards -->
-        <div class="border-t bg-gradient-to-b from-blue-50 to-white p-4">
-          <div class="max-w-4xl mx-auto">
-            <!-- Progress Bar -->
-            <div class="mb-3">
-              <div class="flex justify-between items-center mb-1">
-                <span class="text-sm font-semibold text-blue-900">
-                  ${filteredCruises.length === CRUISES.length ? 'All cruises' :
-                    filteredCruises.length > 100 ? 'Narrowing down...' :
-                    filteredCruises.length > 10 ? 'Getting closer!' :
-                    filteredCruises.length > 0 ? 'Almost there!' : 'No matches'}
-                </span>
-                <span class="text-lg font-bold text-blue-600">${filteredCruises.length.toLocaleString()} options</span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2">
-                <div class="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                     style="width: ${Math.max(5, 100 - (filteredCruises.length / CRUISES.length * 100))}%"></div>
-              </div>
-            </div>
-
-            <!-- Cards -->
-            ${filteredCruises.length > 0 && filteredCruises.length <= 50 ? `
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-              ${filteredCruises.slice(0, 9).map(c => `
-                <div class="bg-white rounded-lg p-3 shadow-sm border text-xs hover:shadow-md transition-shadow cursor-pointer">
-                  <div class="font-semibold text-blue-900 truncate">${c.name}</div>
-                  <div class="text-gray-600 truncate">${c.ship} • ${c.operator}</div>
-                  <div class="text-gray-500">${c.region} • ${c.nights}N • ${c.start}</div>
-                  <div class="flex justify-between mt-1">
-                    <span class="text-green-700 font-bold">£${parseFloat(c.price).toLocaleString()}</span>
-                    <span class="px-1 rounded text-xs ${c.type === 'ocean' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}">${c.type}</span>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-            ${filteredCruises.length > 9 ? `<div class="text-center text-xs text-gray-500 mt-2">Showing 9 of ${filteredCruises.length} - keep refining to see more</div>` : ''}
-            ` : filteredCruises.length > 50 ? `
-            <div class="text-center text-gray-500 text-sm py-4">
-              Too many options to display. Answer the questions above to narrow down your search.
-            </div>
             ` : ''}
           </div>
         </div>
