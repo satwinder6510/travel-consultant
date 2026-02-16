@@ -193,6 +193,20 @@ Or just type what you're looking for and I'll help narrow it down!` }
       render();
     }
 
+    // Get cheapest cruise per operator
+    function getCheapestPerOperator(cruises, limit = 5) {
+      const byOperator = {};
+      for (const c of cruises) {
+        const op = c.operator || 'Unknown';
+        if (!byOperator[op] || parseFloat(c.price) < parseFloat(byOperator[op].price)) {
+          byOperator[op] = c;
+        }
+      }
+      return Object.values(byOperator)
+        .sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
+        .slice(0, limit);
+    }
+
     // ========================================================================
     // RENDER
     // ========================================================================
@@ -262,21 +276,21 @@ Or just type what you're looking for and I'll help narrow it down!` }
           </div>
         </div>
 
-        <!-- Cruise Cards - Show cheapest 5 after 2+ interactions -->
+        <!-- Cruise Cards - Cheapest per cruise line after 2+ interactions -->
         ${userTurns >= 2 && filteredCruises.length > 0 ? `
         <div class="border-t bg-gradient-to-b from-green-50 to-white p-3">
           <div class="max-w-4xl mx-auto">
             <div class="flex justify-between items-center mb-2">
-              <span class="text-sm font-semibold text-green-800">💰 Cheapest 5 from ${filteredCruises.length.toLocaleString()} matches</span>
+              <span class="text-sm font-semibold text-green-800">💰 Best price per cruise line (${filteredCruises.length.toLocaleString()} total matches)</span>
             </div>
             <div class="flex gap-2 overflow-x-auto pb-2">
-              ${[...filteredCruises].sort((a, b) => parseFloat(a.price) - parseFloat(b.price)).slice(0, 5).map(c => `
+              ${getCheapestPerOperator(filteredCruises, 5).map(c => `
                 <div class="flex-shrink-0 w-56 bg-white rounded-lg p-3 shadow-sm border text-xs hover:shadow-md transition-shadow cursor-pointer">
-                  <div class="font-semibold text-blue-900 truncate">${c.name}</div>
-                  <div class="text-gray-600 truncate">${c.ship} &bull; ${c.operator}</div>
+                  <div class="font-bold text-blue-800 truncate">${c.operator}</div>
+                  <div class="text-gray-700 truncate">${c.ship}</div>
                   <div class="text-gray-500">${c.region} &bull; ${c.nights}N</div>
                   <div class="flex justify-between items-center mt-2">
-                    <span class="text-green-700 font-bold">£${parseFloat(c.price).toLocaleString()}</span>
+                    <span class="text-green-700 font-bold">from £${parseFloat(c.price).toLocaleString()}</span>
                     <span class="px-2 py-0.5 rounded text-xs ${c.type === 'ocean' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}">${c.type}</span>
                   </div>
                 </div>
@@ -528,13 +542,11 @@ Or just type what you're looking for and I'll help narrow it down!` }
         `• ${c.ref}: "${c.name}" by ${c.operator} on ${c.ship} | ${c.region} | ${c.nights}N | ${c.start?.split('T')[0]} | ${c.from}→${c.to} | ${c.rating} | £${c.price} | TYPE: ${c.type || 'unknown'}`
       ).join('\n');
 
-      // Get cheapest 5 for the prompt
-      const cheapest5 = [...filteredCruises]
-        .sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
-        .slice(0, 5);
+      // Get cheapest per cruise line for the prompt
+      const cheapestPerLine = getCheapestPerOperator(filteredCruises, 5);
 
-      const cheapestList = cheapest5.map(c =>
-        `• £${c.price} - "${c.name}" by ${c.operator} | ${c.ship} | ${c.region} | ${c.nights} nights | ${c.start?.split('T')[0]}`
+      const cheapestList = cheapestPerLine.map(c =>
+        `• ${c.operator}: from £${c.price} - ${c.ship} | ${c.region} | ${c.nights} nights | ${c.start?.split('T')[0]}`
       ).join('\n');
 
       // After 2 turns, stop asking questions and present results
@@ -544,16 +556,16 @@ Or just type what you're looking for and I'll help narrow it down!` }
 
 MATCHING CRUISES: ${totalMatches} cruises match (${matchRiver} river, ${matchOcean} ocean)
 
-CHEAPEST 5 OPTIONS:
+BEST PRICE PER CRUISE LINE:
 ${cheapestList}
 
 ${presentResults ? `
-ACTION: Show these 5 cheapest options AND ask a refinement question.
+ACTION: Show best price from each cruise line AND ask a refinement question.
 
 RESPONSE FORMAT:
-- "From ${totalMatches} matches, here are the best value options:"
-- List the 5 cheapest (ship, destination, nights, price) - keep each to ONE line
-- Then ask ONE refinement question: "Want to filter by [duration/budget/operator/dates]?"
+- "From ${totalMatches} matches, here's the best price per cruise line:"
+- List each operator with their cheapest option (one line each)
+- Then ask ONE refinement question: "Want to filter by [duration/budget/dates]?"
 
 Show results but keep helping them narrow down.
 ` : `
