@@ -137,11 +137,9 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
     let accumulatedFilters = new Set(); // Persists across conversation
 
     let messages = [
-      { role: 'assistant', content: `Hello! I'm your cruise consultant with access to over 100,000 cruises.
+      { role: 'assistant', content: `Hello! I'm your cruise consultant with access to thousands of river and ocean cruises.
 
-**Select any filters below that match what you're looking for** - type, destination, timing, duration, or budget. Pick as many as you like, then hit search.
-
-Or just type what you're looking for and I'll help narrow it down!` }
+**What kind of cruise are you looking for?** Just tell me in your own words - destination, time of year, budget, or anything else that matters to you.` }
     ];
     let apiKey = localStorage.getItem('anthropic_api_key') || '';
     let isLoading = false;
@@ -335,8 +333,10 @@ Or just type what you're looking for and I'll help narrow it down!` }
               Send
             </button>
           </div>
-          <!-- Multi-select filters -->
+          <!-- Multi-select filters - only show after first interaction -->
+          ${userTurns >= 1 ? `
           <div class="max-w-4xl mx-auto mt-3 space-y-2">
+            <p class="text-sm font-medium text-blue-800">👆 Click as many as apply to narrow your results:</p>
             <div class="flex flex-wrap gap-1.5">
               ${Object.entries(FILTER_OPTIONS).map(([category, options]) =>
                 options.map(opt => `
@@ -363,10 +363,9 @@ Or just type what you're looking for and I'll help narrow it down!` }
                   ✕ Clear
                 </button>
               </div>
-            ` : `
-              <p class="text-xs text-gray-400">Select any that apply to narrow your search</p>
-            `}
+            ` : ''}
           </div>
+          ` : ''}
         </div>
       `;
 
@@ -604,21 +603,22 @@ BEST PRICE PER CRUISE LINE:
 ${cheapestList}
 
 ${presentResults ? `
-ACTION: Show best price from each cruise line AND ask a refinement question.
+ACTION: Show best price from each cruise line AND mention the filter buttons.
 
 RESPONSE FORMAT:
 - "From ${totalMatches} matches, here's the best price per cruise line:"
 - List each operator with their cheapest option (one line each)
-- Then ask ONE refinement question: "Want to filter by [duration/budget/dates]?"
+- End with: "Use the filter buttons below to narrow by dates, duration, or budget."
 
-Show results but keep helping them narrow down.
+Show results and point them to the filters.
 ` : `
-ACTION: Ask ONE quick question to narrow the search.
+ACTION: Acknowledge their search and point them to filter buttons.
 
 RESPONSE FORMAT:
-- "I found ${totalMatches} options. [ONE simple question with 2-3 choices]"
+- "Great! I found ${totalMatches} [type] cruises matching your search."
+- "Use the filter buttons below to narrow down by duration, dates, or budget - click as many as apply!"
 
-Keep it to 1-2 sentences. Do not list cruises yet.
+Keep it to 2 sentences. Point them to the buttons. Do not list cruises yet.
 `}`;
     }
 
