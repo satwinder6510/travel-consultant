@@ -34,9 +34,12 @@
         SHIPS = await shipsRes.json();
         OPERATORS = await operatorsRes.json();
         dataLoaded = true;
-        // Filter to future cruises only
+        // Filter to future cruises with valid prices only
         const today = new Date().toISOString().split('T')[0];
-        filteredCruises = CRUISES.filter(c => c.start && c.start >= today);
+        filteredCruises = CRUISES.filter(c =>
+          c.start && c.start >= today &&
+          c.price && parseFloat(c.price) > 0
+        );
         console.log(`Loaded ${CRUISES.length} cruises, ${SHIPS.length} ships, ${OPERATORS.length} operators`);
         buildSystemPrompt();
         render();
@@ -163,7 +166,10 @@ Or just type what you're looking for and I'll help narrow it down!` }
 
     function updateFilteredCruises() {
       if (selectedFilters.size === 0) {
-        filteredCruises = CRUISES.filter(c => c.start && c.start >= TODAY);
+        filteredCruises = CRUISES.filter(c =>
+          c.start && c.start >= TODAY &&
+          c.price && parseFloat(c.price) > 0
+        );
         return;
       }
       const filters = Array.from(selectedFilters).join(' ').toLowerCase();
@@ -180,7 +186,10 @@ Or just type what you're looking for and I'll help narrow it down!` }
 
     function clearFilters() {
       selectedFilters.clear();
-      filteredCruises = CRUISES.filter(c => c.start && c.start >= TODAY);
+      filteredCruises = CRUISES.filter(c =>
+        c.start && c.start >= TODAY &&
+        c.price && parseFloat(c.price) > 0
+      );
       render();
     }
 
@@ -342,8 +351,11 @@ Or just type what you're looking for and I'll help narrow it down!` }
     function filterCruises(userMessage) {
       const msg = userMessage.toLowerCase();
 
-      // Start with future cruises only
-      let filtered = CRUISES.filter(c => c.start && c.start >= TODAY);
+      // Start with future cruises only, with valid prices
+      let filtered = CRUISES.filter(c =>
+        c.start && c.start >= TODAY &&
+        c.price && parseFloat(c.price) > 0
+      );
 
       // Cruise type filter (river vs ocean)
       const oceanKeywords = [
@@ -381,7 +393,9 @@ Or just type what you're looking for and I'll help narrow it down!` }
       };
       for (const [keyword, region] of Object.entries(regions)) {
         if (msg.includes(keyword)) {
-          filtered = filtered.filter(c => c.region === region);
+          filtered = filtered.filter(c =>
+            c.region && c.region.toLowerCase().includes(region.toLowerCase())
+          );
           break;
         }
       }
