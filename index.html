@@ -19,14 +19,22 @@
     // CRUISE DATA - Loaded from JSON
     // ========================================================================
     let CRUISES = [];
+    let SHIPS = [];
+    let OPERATORS = [];
     let dataLoaded = false;
 
     async function loadCruiseData() {
       try {
-        const response = await fetch('cruise-data-cruises.json');
-        CRUISES = await response.json();
+        const [cruisesRes, shipsRes, operatorsRes] = await Promise.all([
+          fetch('cruise-data-cruises.json'),
+          fetch('cruise-data-ships.json'),
+          fetch('cruise-data-operators.json')
+        ]);
+        CRUISES = await cruisesRes.json();
+        SHIPS = await shipsRes.json();
+        OPERATORS = await operatorsRes.json();
         dataLoaded = true;
-        console.log(`Loaded ${CRUISES.length} cruises`);
+        console.log(`Loaded ${CRUISES.length} cruises, ${SHIPS.length} ships, ${OPERATORS.length} operators`);
         buildSystemPrompt();
         render();
       } catch (error) {
@@ -35,7 +43,7 @@
           <div class="flex items-center justify-center h-screen">
             <div class="text-red-600 text-center">
               <p class="text-xl font-bold">Failed to load cruise data</p>
-              <p class="text-sm mt-2">Make sure cruise-data-cruises.json is in the same folder</p>
+              <p class="text-sm mt-2">Check console for details</p>
             </div>
           </div>`;
       }
@@ -44,15 +52,24 @@
     let SYSTEM_PROMPT = '';
 
     function buildSystemPrompt() {
-      // Limit to first 100 cruises for prompt size (Claude context limit)
+      // Limit cruises for prompt size
       const cruiseList = CRUISES.slice(0, 100).map(c =>
         `• ${c.ref}: "${c.name}" by ${c.operator} | ${c.region} | ${c.nights}N | ${c.start} | ${c.from}→${c.to} | ${c.rating} | £${c.price}`
+      ).join('\n');
+
+      // River ships only with key stats
+      const riverShips = SHIPS.filter(s => s.type === 'river').slice(0, 50);
+      const shipList = riverShips.map(s =>
+        `• ${s.name}: ${s.operator} | ${s.capacity || '?'} guests | Built ${s.year || '?'} | ${s.size || ''}`
       ).join('\n');
 
       SYSTEM_PROMPT = `You are an expert river cruise consultant with real cruise inventory. Always recommend SPECIFIC cruises from the data below with actual prices and dates.
 
 CRUISE INVENTORY (${CRUISES.length} total, showing sample):
 ${cruiseList}
+
+SHIPS (${riverShips.length} river ships):
+${shipList}
 
 QUERY HANDLING:
 
@@ -140,7 +157,8 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
               <p class="text-blue-200 text-sm">Find your perfect European river cruise</p>
             </div>
             <div class="text-right text-sm text-blue-200">
-              <div>${CRUISES.length} cruises loaded</div>
+              <div>${CRUISES.length} cruises</div>
+              <div>${SHIPS.filter(s => s.type === 'river').length} ships</div>
             </div>
           </div>
         </header>
