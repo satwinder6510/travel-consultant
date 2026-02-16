@@ -127,48 +127,41 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
     let userTurns = 0;           // Track conversation depth
 
     let messages = [
-      { role: 'assistant', content: `Hello! I'm your cruise consultant. I can help you find the perfect river or ocean cruise.
+      { role: 'assistant', content: `Hello! I'm your cruise consultant with access to over 100,000 cruises.
 
-**Tell me about your ideal trip:**
-• River cruise (Danube, Rhine, Douro) or ocean cruise (Caribbean, Mediterranean, Alaska)?
-• When are you hoping to travel?
-• Who's joining you?
-• What's your budget?` }
+**Select any filters below that match what you're looking for** - type, destination, timing, duration, or budget. Pick as many as you like, then hit search.
+
+Or just type what you're looking for and I'll help narrow it down!` }
     ];
     let apiKey = localStorage.getItem('anthropic_api_key') || '';
     let isLoading = false;
 
-    // Dynamic quick-reply buttons based on funnel stage
-    function getQuickReplies() {
-      const count = filteredCruises.length;
+    // Multi-select filter state
+    let selectedFilters = new Set();
 
-      // Initial state - no filters yet
-      if (count === CRUISES.length || userTurns === 0) {
-        return ['River cruise', 'Ocean cruise', 'Caribbean', 'Mediterranean', 'Alaska'];
+    // Filter categories
+    const FILTER_OPTIONS = {
+      type: ['River', 'Ocean'],
+      region: ['Caribbean', 'Mediterranean', 'Alaska', 'Danube', 'Rhine', 'Northern Europe'],
+      when: ['Spring', 'Summer', 'Fall', 'Winter', 'Christmas'],
+      duration: ['3-5 nights', '7 nights', '10-14 nights'],
+      budget: ['Under £1000', '£1000-2000', '£2000+', 'Luxury']
+    };
+
+    function toggleFilter(filter) {
+      if (selectedFilters.has(filter)) {
+        selectedFilters.delete(filter);
+      } else {
+        selectedFilters.add(filter);
       }
-      // Many matches - ask about timing
-      if (count > 500) {
-        return ['Spring 2026', 'Summer 2026', 'Fall 2026', 'Christmas markets'];
-      }
-      // Still broad - ask about duration
-      if (count > 100) {
-        return ['3-5 nights', '7 nights', '10-14 nights', '2+ weeks'];
-      }
-      // Getting specific - ask about budget
-      if (count > 50) {
-        return ['Under £1000', '£1000-2000', '£2000-3000', 'Luxury £3000+'];
-      }
-      // Nearly there - ask about preferences
-      if (count > 10) {
-        return ['Best value', 'Highest rated', 'Shortest trip', 'Longest trip'];
-      }
-      // Few options - help decide
-      return ['Tell me more', 'Show cheapest', 'Show top rated'];
+      render();
     }
 
-    // Send quick reply immediately
-    function quickReply(text) {
-      document.getElementById('messageInput').value = text;
+    function applyFilters() {
+      if (selectedFilters.size === 0) return;
+      const filterText = Array.from(selectedFilters).join(', ');
+      document.getElementById('messageInput').value = filterText;
+      selectedFilters.clear();
       sendMessage();
     }
 
@@ -277,13 +270,37 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
               Send
             </button>
           </div>
-          <div class="max-w-4xl mx-auto mt-2 flex gap-2 flex-wrap">
-            ${getQuickReplies().map(s => `
-              <button onclick="quickReply('${s}')"
-                class="px-3 py-1 text-sm bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full text-blue-700 transition-colors">
-                ${s}
-              </button>
-            `).join('')}
+          <!-- Multi-select filters -->
+          <div class="max-w-4xl mx-auto mt-3 space-y-2">
+            <div class="flex flex-wrap gap-1.5">
+              ${Object.entries(FILTER_OPTIONS).map(([category, options]) =>
+                options.map(opt => `
+                  <button onclick="toggleFilter('${opt}')"
+                    class="px-3 py-1 text-sm rounded-full transition-all ${
+                      selectedFilters.has(opt)
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                    }">
+                    ${opt}
+                  </button>
+                `).join('')
+              ).join('')}
+            </div>
+            ${selectedFilters.size > 0 ? `
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-600">${selectedFilters.size} selected</span>
+                <button onclick="applyFilters()"
+                  class="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-full hover:bg-blue-700 transition-colors">
+                  Search with these filters
+                </button>
+                <button onclick="selectedFilters.clear(); render()"
+                  class="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700">
+                  Clear
+                </button>
+              </div>
+            ` : `
+              <p class="text-xs text-gray-400">Select any that apply to narrow your search</p>
+            `}
           </div>
         </div>
       `;
