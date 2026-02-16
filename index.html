@@ -34,6 +34,7 @@
         SHIPS = await shipsRes.json();
         OPERATORS = await operatorsRes.json();
         dataLoaded = true;
+        filteredCruises = [...CRUISES]; // Start with all cruises
         console.log(`Loaded ${CRUISES.length} cruises, ${SHIPS.length} ships, ${OPERATORS.length} operators`);
         buildSystemPrompt();
         render();
@@ -195,28 +196,49 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
           </div>
         </div>
 
-        <!-- Cruise Cards -->
-        ${filteredCruises.length > 0 ? `
-        <div class="border-t bg-gray-50 p-4 max-h-64 overflow-y-auto">
+        <!-- Refinement Progress & Cruise Cards -->
+        <div class="border-t bg-gradient-to-b from-blue-50 to-white p-4">
           <div class="max-w-4xl mx-auto">
-            <div class="text-sm text-gray-600 mb-2 font-medium">${filteredCruises.length} cruises match your criteria:</div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              ${filteredCruises.slice(0, 12).map(c => `
-                <div class="bg-white rounded-lg p-3 shadow-sm border text-xs">
+            <!-- Progress Bar -->
+            <div class="mb-3">
+              <div class="flex justify-between items-center mb-1">
+                <span class="text-sm font-semibold text-blue-900">
+                  ${filteredCruises.length === CRUISES.length ? 'All cruises' :
+                    filteredCruises.length > 100 ? 'Narrowing down...' :
+                    filteredCruises.length > 10 ? 'Getting closer!' :
+                    filteredCruises.length > 0 ? 'Almost there!' : 'No matches'}
+                </span>
+                <span class="text-lg font-bold text-blue-600">${filteredCruises.length.toLocaleString()} options</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                     style="width: ${Math.max(5, 100 - (filteredCruises.length / CRUISES.length * 100))}%"></div>
+              </div>
+            </div>
+
+            <!-- Cards -->
+            ${filteredCruises.length > 0 && filteredCruises.length <= 50 ? `
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+              ${filteredCruises.slice(0, 9).map(c => `
+                <div class="bg-white rounded-lg p-3 shadow-sm border text-xs hover:shadow-md transition-shadow cursor-pointer">
                   <div class="font-semibold text-blue-900 truncate">${c.name}</div>
-                  <div class="text-gray-600">${c.ship} • ${c.operator}</div>
+                  <div class="text-gray-600 truncate">${c.ship} • ${c.operator}</div>
                   <div class="text-gray-500">${c.region} • ${c.nights}N • ${c.start}</div>
                   <div class="flex justify-between mt-1">
-                    <span class="text-green-700 font-bold">£${c.price}</span>
-                    <span class="text-gray-400">${c.type}</span>
+                    <span class="text-green-700 font-bold">£${parseFloat(c.price).toLocaleString()}</span>
+                    <span class="px-1 rounded text-xs ${c.type === 'ocean' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}">${c.type}</span>
                   </div>
                 </div>
               `).join('')}
             </div>
-            ${filteredCruises.length > 12 ? `<div class="text-center text-xs text-gray-400 mt-2">+ ${filteredCruises.length - 12} more</div>` : ''}
+            ${filteredCruises.length > 9 ? `<div class="text-center text-xs text-gray-500 mt-2">Showing 9 of ${filteredCruises.length} - keep refining to see more</div>` : ''}
+            ` : filteredCruises.length > 50 ? `
+            <div class="text-center text-gray-500 text-sm py-4">
+              Too many options to display. Answer the questions above to narrow down your search.
+            </div>
+            ` : ''}
           </div>
         </div>
-        ` : ''}
 
         <!-- Input -->
         <div class="border-t bg-white p-4">
@@ -430,18 +452,27 @@ FILTERED RESULTS: ${matchCount} cruises (${matchRiver} river, ${matchOcean} ocea
 SAMPLE CRUISES:
 ${cruiseList || '(No matches found for this query)'}
 
-CRITICAL RULES:
-- ONLY recommend cruises listed above - never invent cruise names or details
-- If no cruises match, say "I don't have cruises matching that criteria" and suggest broadening the search
-- Every cruise you mention MUST have a reference code (ref) from the list above
-- Never make up operators, ships, or itineraries that aren't in the data
+YOUR ROLE: Help the user narrow down from ${CRUISES.length} cruises to their perfect choice.
 
-INSTRUCTIONS:
-- Current year is 2026 - all data is current
-- Show ALL matching cruises from the list above with: name, ref, ship, dates, price
-- Format each as a clear entry with all key details
-- If many matches, organize by date or price
-- Ask follow-up questions to help narrow down if needed`;
+FUNNEL APPROACH:
+1. If >100 matches: Ask about CRUISE TYPE (river vs ocean) or REGION
+2. If 50-100 matches: Ask about DATES or BUDGET
+3. If 10-50 matches: Ask about DURATION or OPERATOR preference
+4. If <10 matches: Present the options and help them DECIDE
+
+CURRENT STATUS: ${matchCount} cruises match their criteria.
+
+RESPONSE FORMAT:
+- Acknowledge their criteria briefly
+- State how many options remain
+- Ask ONE clear follow-up question with 2-3 specific options
+- Example: "That narrows it to 45 Mediterranean cruises! When are you looking to travel? Summer 2026 has the most options, or September offers better prices."
+
+RULES:
+- ALWAYS end with a question to narrow further (unless <5 options)
+- Keep responses short and focused
+- Only reference cruises from the data above
+- If <5 options, present each briefly and ask which appeals most`;
     }
 
     const API_URL = 'https://travel-consultant.satwinder-a59.workers.dev/';
