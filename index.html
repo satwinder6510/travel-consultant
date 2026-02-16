@@ -133,6 +133,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
     let filteredCruises = [];    // Full filtered list (for real count)
     let sampleCruises = [];      // Sliced sample for display/prompt
     let userTurns = 0;           // Track conversation depth
+    let accumulatedFilters = new Set(); // Persists across conversation
 
     let messages = [
       { role: 'assistant', content: `Hello! I'm your cruise consultant with access to over 100,000 cruises.
@@ -168,31 +169,44 @@ Or just type what you're looking for and I'll help narrow it down!` }
     }
 
     function updateFilteredCruises() {
-      if (selectedFilters.size === 0) {
+      // Combine accumulated + currently selected for live preview
+      const allFilters = new Set([...accumulatedFilters, ...selectedFilters]);
+
+      if (allFilters.size === 0) {
         filteredCruises = CRUISES.filter(c =>
           c.start && c.start >= TODAY &&
           c.price && parseFloat(c.price) > 0
         );
         return;
       }
-      // Join all selected filters into one search string
-      const filters = Array.from(selectedFilters).join(' ');
+      const filters = Array.from(allFilters).join(' ');
       filteredCruises = filterCruises(filters);
       console.log('Live filter:', filters, '→', filteredCruises.length, 'results');
     }
 
     function applyFilters() {
       if (selectedFilters.size === 0) return;
-      // Use same format as updateFilteredCruises
-      const filterText = Array.from(selectedFilters).join(' ');
-      document.getElementById('messageInput').value = filterText;
-      console.log('Applying filters:', filterText);
+
+      // Add new selections to accumulated filters
+      selectedFilters.forEach(f => accumulatedFilters.add(f));
+
+      // Use ALL accumulated filters for the search
+      const allFilters = Array.from(accumulatedFilters).join(' ');
+
+      // But only show the NEW selections in the chat message
+      const newFilters = Array.from(selectedFilters).join(', ');
+      document.getElementById('messageInput').value = newFilters;
+
+      console.log('New filters:', newFilters);
+      console.log('All accumulated:', allFilters);
+
       selectedFilters.clear();
       sendMessage();
     }
 
     function clearFilters() {
       selectedFilters.clear();
+      accumulatedFilters.clear(); // Also clear conversation history filters
       filteredCruises = CRUISES.filter(c =>
         c.start && c.start >= TODAY &&
         c.price && parseFloat(c.price) > 0
@@ -655,9 +669,18 @@ Keep it to 1-2 sentences. Do not list cruises yet.
       const text = input.value.trim();
       if (!text || isLoading) return;
 
-      // Update filtered cruises based on message
-      currentFilters.query = text;
-      filteredCruises = filterCruises(text);
+      // Add any text-based filters to accumulated set
+      // (handles typed input as well as button clicks)
+      if (text) {
+        accumulatedFilters.add(text);
+      }
+
+      // Filter using ALL accumulated criteria
+      const allFilters = Array.from(accumulatedFilters).join(' ');
+      currentFilters.query = allFilters;
+      filteredCruises = filterCruises(allFilters);
+      console.log('Filtering with accumulated:', allFilters, '→', filteredCruises.length);
+
       userTurns++; // Increment conversation depth
 
       messages.push({ role: 'user', content: text });
