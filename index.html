@@ -235,6 +235,110 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       render();
     }
 
+    // ========================================================================
+    // SMART FILTERING - Extract criteria from user message
+    // ========================================================================
+    function filterCruises(userMessage) {
+      const msg = userMessage.toLowerCase();
+      let filtered = [...CRUISES];
+
+      // Region filters
+      const regions = {
+        'danube': 'Danube', 'vienna': 'Danube', 'budapest': 'Danube', 'passau': 'Danube',
+        'rhine': 'Rhine', 'cologne': 'Rhine', 'amsterdam': 'Rhine', 'basel': 'Rhine',
+        'douro': 'Douro', 'porto': 'Douro', 'portugal': 'Douro',
+        'rhone': 'Rhone', 'rhône': 'Rhone', 'lyon': 'Rhone', 'provence': 'Rhone'
+      };
+      for (const [keyword, region] of Object.entries(regions)) {
+        if (msg.includes(keyword)) {
+          filtered = filtered.filter(c => c.region === region);
+          break;
+        }
+      }
+
+      // Budget filters
+      const budgetMatch = msg.match(/(?:under|below|max|budget|£|£)\s*(\d{3,5})/);
+      if (budgetMatch) {
+        const maxPrice = parseInt(budgetMatch[1]);
+        filtered = filtered.filter(c => parseFloat(c.price) <= maxPrice);
+      }
+      if (msg.includes('budget') || msg.includes('cheap') || msg.includes('value')) {
+        filtered = filtered.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+      }
+
+      // Luxury filters
+      if (msg.includes('luxury') || msg.includes('high-end') || msg.includes('premium')) {
+        if (msg.includes('ultra')) {
+          filtered = filtered.filter(c => c.rating === 'Ultra Luxury');
+        } else if (msg.includes('luxury')) {
+          filtered = filtered.filter(c => c.rating === 'Luxury' || c.rating === 'Ultra Luxury');
+        }
+      }
+
+      // Duration filters
+      const nightsMatch = msg.match(/(\d+)\s*(?:night|day|week)/);
+      if (nightsMatch) {
+        const nights = parseInt(nightsMatch[1]);
+        if (msg.includes('week')) {
+          filtered = filtered.filter(c => c.nights >= 6 && c.nights <= 8);
+        } else {
+          filtered = filtered.filter(c => Math.abs(c.nights - nights) <= 1);
+        }
+      }
+
+      // Date/month filters
+      const months = {
+        'january': '01', 'february': '02', 'march': '03', 'april': '04',
+        'may': '05', 'june': '06', 'july': '07', 'august': '08',
+        'september': '09', 'october': '10', 'november': '11', 'december': '12',
+        'spring': ['03','04','05'], 'summer': ['06','07','08'],
+        'autumn': ['09','10','11'], 'fall': ['09','10','11'], 'winter': ['12','01','02'],
+        'christmas': ['11','12']
+      };
+      for (const [keyword, monthVal] of Object.entries(months)) {
+        if (msg.includes(keyword)) {
+          if (Array.isArray(monthVal)) {
+            filtered = filtered.filter(c => monthVal.some(m => c.start && c.start.includes(`-${m}-`)));
+          } else {
+            filtered = filtered.filter(c => c.start && c.start.includes(`-${monthVal}-`));
+          }
+          break;
+        }
+      }
+
+      // Operator filters
+      const operators = ['a-rosa', 'arosa', 'viking', 'ama', 'amawaterways', 'scenic', 'uniworld', 'tauck'];
+      for (const op of operators) {
+        if (msg.includes(op)) {
+          filtered = filtered.filter(c => c.operator && c.operator.toLowerCase().includes(op.replace('-', '')));
+          break;
+        }
+      }
+
+      // Return top 30 matches (limit for prompt size)
+      return filtered.slice(0, 30);
+    }
+
+    function buildDynamicPrompt(userMessage) {
+      const matches = filterCruises(userMessage);
+      const matchCount = matches.length;
+
+      const cruiseList = matches.map(c =>
+        `• ${c.ref}: "${c.name}" by ${c.operator} on ${c.ship} | ${c.region} | ${c.nights}N | ${c.start?.split('T')[0]} | ${c.from}→${c.to} | ${c.rating} | £${c.price} (balcony: £${c.balcony || 'N/A'})`
+      ).join('\n');
+
+      return `You are an expert river cruise consultant. Recommend SPECIFIC cruises from the matches below.
+
+MATCHING CRUISES (${matchCount} found from ${CRUISES.length} total):
+${cruiseList || '(No exact matches - suggest alternatives from general knowledge)'}
+
+INSTRUCTIONS:
+- Quote specific cruise names, dates, prices, and ship names
+- If few matches, explain why and suggest adjusting criteria
+- Ask follow-up questions to refine: dates, budget, cabin type, group size
+- Be concise but helpful`;
+    }
+
     async function sendMessage() {
       const input = document.getElementById('messageInput');
       const text = input.value.trim();
@@ -258,7 +362,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
           body: JSON.stringify({
             model: 'claude-3-haiku-20240307',
             max_tokens: 1024,
-            system: SYSTEM_PROMPT,
+            system: buildDynamicPrompt(text),
             messages: messages.map(m => ({ role: m.role, content: m.content }))
           })
         });
