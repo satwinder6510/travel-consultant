@@ -233,10 +233,16 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       let filtered = [...CRUISES];
 
       // Cruise type filter (river vs ocean)
-      if (msg.includes('river')) {
-        filtered = filtered.filter(c => c.type === 'River' || !c.type);
-      } else if (msg.includes('ocean') || msg.includes('caribbean') || msg.includes('mediterranean') ||
-                 msg.includes('alaska') || msg.includes('norway') || msg.includes('cruise ship')) {
+      const oceanKeywords = [
+        'ocean', 'caribbean', 'mediterranean', 'alaska', 'bahamas', 'hawaii', 'cruise ship',
+        'ncl', 'norwegian', 'royal caribbean', 'msc', 'carnival', 'celebrity', 'princess',
+        'holland america', 'cunard', 'p&o', 'costa', 'disney cruise', 'silversea'
+      ];
+      const riverKeywords = ['river', 'a-rosa', 'viking river', 'amawaterways', 'uniworld', 'avalon'];
+
+      if (riverKeywords.some(k => msg.includes(k))) {
+        filtered = filtered.filter(c => c.type === 'river');
+      } else if (oceanKeywords.some(k => msg.includes(k))) {
         filtered = filtered.filter(c => c.type === 'ocean');
       }
 
@@ -252,7 +258,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
         'nile': 'Nile', 'egypt': 'Nile',
         // Ocean regions
         'caribbean': 'Caribbean', 'bahamas': 'Caribbean', 'jamaica': 'Caribbean',
-        'mediterranean': 'Mediterranean', 'greek': 'Mediterranean', 'italy': 'Mediterranean', 'spain': 'Mediterranean',
+        'mediterranean': 'Mediterranean', 'greek': 'Mediterranean', 'italy': 'Mediterranean', 'spain': 'Mediterranean', 'rome': 'Mediterranean', 'barcelona': 'Mediterranean', 'athens': 'Mediterranean',
         'alaska': 'Alaska',
         'northern europe': 'Northern Europe', 'norway': 'Northern Europe', 'scandinavia': 'Northern Europe', 'fjords': 'Northern Europe',
         'asia': 'Asia', 'japan': 'Asia', 'singapore': 'Asia',
