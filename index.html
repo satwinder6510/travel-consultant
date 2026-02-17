@@ -650,14 +650,14 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
                     </div>
 
                     <!-- Pricing Panel -->
-                    <div class="md:w-56 bg-gray-50 p-4 border-l flex flex-col justify-between">
+                    <div class="md:w-64 bg-gray-50 p-4 border-l flex flex-col justify-between">
                       <div>
                         <p class="text-xs text-gray-500 mb-3 font-medium">From:</p>
-                        <div class="space-y-2">
+                        <div class="space-y-3">
                           ${(c.cabins || []).map((cab, i) => `
-                            <div class="flex justify-between items-center gap-2">
-                              <span class="text-xs text-gray-600 truncate" title="${cab.name}">${cab.name}</span>
-                              <span class="${i === 0 ? 'text-base font-bold text-gray-900' : 'text-sm font-medium text-gray-700'}">£${parseFloat(cab.price).toLocaleString()}</span>
+                            <div class="flex justify-between items-start gap-3">
+                              <span class="text-xs text-gray-600 leading-tight flex-1">${cab.name}</span>
+                              <span class="${i === 0 ? 'text-base font-bold text-gray-900' : 'text-sm font-medium text-gray-700'} whitespace-nowrap">£${parseFloat(cab.price).toLocaleString()}</span>
                             </div>
                           `).join('')}
                         </div>
