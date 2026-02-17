@@ -135,6 +135,8 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
     let displayCruises = [];     // Cached results for cards (synced with prompt)
     let userTurns = 0;           // Track conversation depth
     let accumulatedFilters = new Set(); // Persists across conversation
+    let currentOperatorFilter = '';  // Cruise line filter
+    let currentDurationFilter = '';  // Duration filter
 
     let messages = [];
     let apiKey = localStorage.getItem('anthropic_api_key') || '';
@@ -178,6 +180,8 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
 
     function completeWizard() {
       wizardComplete = true;
+      currentOperatorFilter = '';
+      currentDurationFilter = '';
       applyWizardFilters();
       // Sort by price initially
       displayCruises.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
@@ -220,6 +224,8 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       messages = [];
       userTurns = 0;
       accumulatedFilters.clear();
+      currentOperatorFilter = '';
+      currentDurationFilter = '';
       filteredCruises = CRUISES.filter(c =>
         c.start && c.start >= TODAY &&
         c.price && parseFloat(c.price) > 0
@@ -243,6 +249,50 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
           displayCruises.sort((a, b) => a.nights - b.nights);
           break;
       }
+      render();
+    }
+
+    function filterByOperator(operator) {
+      currentOperatorFilter = operator;
+      applyDisplayFilters();
+    }
+
+    function filterByDuration(duration) {
+      currentDurationFilter = duration;
+      applyDisplayFilters();
+    }
+
+    function applyDisplayFilters() {
+      // Start with grouped cruises from wizard filters
+      let results = groupCruisesByItinerary(filteredCruises);
+
+      // Apply operator filter
+      if (currentOperatorFilter) {
+        results = results.filter(c => c.operator === currentOperatorFilter);
+      }
+
+      // Apply duration filter
+      if (currentDurationFilter) {
+        switch(currentDurationFilter) {
+          case '1-5':
+            results = results.filter(c => c.nights >= 1 && c.nights <= 5);
+            break;
+          case '6-9':
+            results = results.filter(c => c.nights >= 6 && c.nights <= 9);
+            break;
+          case '10-14':
+            results = results.filter(c => c.nights >= 10 && c.nights <= 14);
+            break;
+          case '15+':
+            results = results.filter(c => c.nights >= 15);
+            break;
+        }
+      }
+
+      // Sort by price
+      results.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+
+      displayCruises = results;
       render();
     }
 
@@ -474,16 +524,37 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
 
           <!-- Sort & Filter Bar -->
           <div class="bg-gray-50 border-b px-4 py-3 sticky top-0 z-10">
-            <div class="max-w-5xl mx-auto flex items-center justify-between">
+            <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
               <div class="text-sm text-gray-600">${displayCruises.length.toLocaleString()} itineraries (${filteredCruises.length.toLocaleString()} sailing dates)</div>
-              <div class="flex items-center gap-4">
-                <span class="text-sm text-gray-500">Sort by:</span>
-                <select onchange="sortCruises(this.value)" class="text-sm border rounded px-2 py-1">
-                  <option value="price-low">Price: Low to High</option>
-                  <option value="price-high">Price: High to Low</option>
-                  <option value="date">Departure Date</option>
-                  <option value="nights">Duration</option>
-                </select>
+              <div class="flex flex-wrap items-center gap-4">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm text-gray-500">Cruise Line:</span>
+                  <select onchange="filterByOperator(this.value)" class="text-sm border rounded px-2 py-1">
+                    <option value="">All Cruise Lines</option>
+                    ${[...new Set(groupCruisesByItinerary(filteredCruises).map(c => c.operator))].sort().map(op =>
+                      `<option value="${op}" ${currentOperatorFilter === op ? 'selected' : ''}>${op}</option>`
+                    ).join('')}
+                  </select>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-sm text-gray-500">Duration:</span>
+                  <select onchange="filterByDuration(this.value)" class="text-sm border rounded px-2 py-1">
+                    <option value="">All Durations</option>
+                    <option value="1-5" ${currentDurationFilter === '1-5' ? 'selected' : ''}>1-5 nights</option>
+                    <option value="6-9" ${currentDurationFilter === '6-9' ? 'selected' : ''}>6-9 nights</option>
+                    <option value="10-14" ${currentDurationFilter === '10-14' ? 'selected' : ''}>10-14 nights</option>
+                    <option value="15+" ${currentDurationFilter === '15+' ? 'selected' : ''}>15+ nights</option>
+                  </select>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-sm text-gray-500">Sort:</span>
+                  <select onchange="sortCruises(this.value)" class="text-sm border rounded px-2 py-1">
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="date">Departure Date</option>
+                    <option value="nights">Duration</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
