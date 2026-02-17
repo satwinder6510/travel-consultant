@@ -46,11 +46,11 @@ After wizard completion:
 ### Layout (matches flightsandpackages.com)
 Each card has 3 columns:
 
-**Left: Image Area**
-- Gradient background (sky blue)
+**Left: Ship Image**
+- Ship photo from Widgety CDN (looked up by ship name from SHIPS data)
+- Fallback: gradient background with ship icon if no image or load error
 - Operator name in white box (top-left)
 - Cruise type badge (top-right): "Cruise Only" / "River Cruise"
-- Ship icon placeholder
 
 **Center: Cruise Details**
 - Title: "Region : Cruise Name"
@@ -148,8 +148,14 @@ Data hosted on Cloudflare R2:
 - `cruise-data-full.json` - main cruise inventory
 
 Local data files:
-- `cruise-data-ships-all.json` - ship details
+- `cruise-data-ships-all.json` - ship details including `img` URLs
 - `cruise-data-operators.json` - operator details
+
+### Ship Images
+- Images stored on Widgety CDN: `https://assets.widgety.co.uk/...`
+- Looked up by ship name using `getShipImage(shipName)` function
+- Returns `null` if ship not found in SHIPS array
+- Card uses `onerror` handler to show fallback on broken images
 
 ---
 
@@ -208,3 +214,5 @@ python -m http.server 8080
 | 2026-02-17 | Removed hardcoded "Cruise Includes" | Don't show data we don't have |
 | 2026-02-17 | Instant filtering (no API) | Faster, no waiting |
 | 2026-02-17 | SVG icons not emojis | Professional look |
+| 2026-02-17 | Ship images from Widgety CDN | Real photos, not placeholders |
+| 2026-02-17 | Image fallback on error | Graceful degradation if image fails |
