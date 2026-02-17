@@ -20,10 +20,12 @@ On load, a modal guides the user through key choices:
 - River: Danube, Rhine, Douro, Rhone, Seine, Mekong, Nile
 - Ocean: Caribbean, Mediterranean, Alaska, Northern Europe, Asia & Pacific, Australia & NZ
 
-**Step 3: Number of Travelers**
-- Solo (1) - affects cabin pricing/single supplements
-- Couple (2) - standard per-person pricing
-- Family/Group (3+) - larger cabins needed
+**Step 3: When to Travel**
+- Anytime - all available dates
+- Spring (Mar-May)
+- Summer (Jun-Aug)
+- Autumn (Sep-Nov)
+- Winter (Dec-Feb)
 
 ### 2. Results Display
 After wizard completion:
@@ -33,11 +35,12 @@ After wizard completion:
 - Filter bar at bottom for refinements
 
 ### 3. Filtering
-- Text-based filter bar (no multi-select buttons)
+- **Ask Inder** bar at bottom - AI-branded natural language filter
 - Type natural language: "under £2000", "July", "7 nights"
 - Filters apply instantly (no API call)
 - Active filters shown with "Clear all" option
 - Filters accumulate - each search adds to previous
+- Dropdown filters: Cruise Line, Duration, Sort
 
 ---
 
@@ -118,8 +121,9 @@ Available via dropdown:
 Applied after wizard completion:
 1. Cruise type (river/ocean)
 2. Region
-3. Future dates only
-4. Valid prices only
+3. Season/month (if not "anytime")
+4. Future dates only
+5. Valid prices only
 
 ### Text Filter Additions
 User can type to add filters:
@@ -214,7 +218,7 @@ python -m http.server 8080
 | Date | Decision | Reason |
 |------|----------|--------|
 | 2026-02-17 | Wizard modal instead of chat-first | Cleaner UX, focused choices |
-| 2026-02-17 | 3 questions: Type, Region, Travelers | Most impactful for narrowing results |
+| 2026-02-17 | 3 questions: Type, Region, When | Most impactful for narrowing results |
 | 2026-02-17 | Full cards not compact | Match existing website style |
 | 2026-02-17 | All cabin prices shown | Users want to compare options |
 | 2026-02-17 | Inside/Outside cabin labels | Inside=ocean base, Outside=river base |
@@ -225,4 +229,7 @@ python -m http.server 8080
 | 2026-02-17 | Image fallback on error | Graceful degradation if image fails |
 | 2026-02-17 | Actual cabin names from Widgety | Show real cabin grade names, not generic labels |
 | 2026-02-17 | Itinerary grouping | Group same cruises by operator+ship+name, show cheapest |
-| 2026-02-17 | Sailing dates hover modal | When multiple dates exist, hover shows all available dates |
+| 2026-02-17 | Sailing dates hover modal | When multiple dates exist, hover/tap shows all available dates |
+| 2026-02-17 | Sailing dates mobile support | Tap to toggle tooltip on mobile devices |
+| 2026-02-17 | "Ask Inder" branding | Rebranded filter bar as AI cruise expert |
+| 2026-02-17 | Season selector instead of travelers | No single pricing data available from Widgety yet |
