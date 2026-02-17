@@ -196,8 +196,8 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
         if (!c.start || c.start < today) return false;
         if (!c.price || parseFloat(c.price) <= 0) return false;
 
-        // Type filter
-        if (wizardAnswers.type && c.type !== wizardAnswers.type) return false;
+        // Type filter (infer from region if not set)
+        if (wizardAnswers.type && getCruiseType(c) !== wizardAnswers.type) return false;
 
         // Region filter
         if (wizardAnswers.region) {
@@ -250,6 +250,16 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       messages = [];
       applyWizardFilters(); // Re-apply just wizard filters
       render();
+    }
+
+    // River regions - used to infer cruise type from region
+    const RIVER_REGIONS = ['danube', 'rhine', 'douro', 'rhone', 'seine', 'mekong', 'nile', 'moselle', 'main', 'elbe', 'loire', 'saone', 'garonne', 'ganges', 'yangtze', 'mississippi', 'amazon', 'chobe', 'zambezi', 'dutch waterways', 'magdalena', 'po', 'dordogne', 'gironde', 'guadalquivir', 'guadiana', 'oder'];
+
+    // Infer cruise type from region
+    function getCruiseType(cruise) {
+      if (cruise.type) return cruise.type; // Use if already set
+      const region = (cruise.region || '').toLowerCase();
+      return RIVER_REGIONS.some(r => region.includes(r)) ? 'river' : 'ocean';
     }
 
     // Get ship image by name
@@ -479,7 +489,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
                       </div>
                       <!-- Cruise Type Badge -->
                       <div class="absolute top-3 right-3 bg-gray-900/80 text-white px-3 py-1 rounded text-xs font-medium">
-                        ${c.type === 'ocean' ? 'Cruise Only' : 'River Cruise'}
+                        ${getCruiseType(c) === 'ocean' ? 'Cruise Only' : 'River Cruise'}
                       </div>
                     </div>
 
@@ -532,7 +542,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
                         <div class="space-y-2">
                           ${c.price && parseFloat(c.price) > 0 ? `
                             <div class="flex justify-between items-center">
-                              <span class="text-sm text-gray-600">${c.type === 'ocean' ? 'Inside' : 'Outside'}</span>
+                              <span class="text-sm text-gray-600">${getCruiseType(c) === 'ocean' ? 'Inside' : 'Outside'}</span>
                               <span class="text-lg font-bold text-gray-900">£${parseFloat(c.price).toLocaleString()}</span>
                             </div>` : ''}
                           ${c.balcony && parseFloat(c.balcony) > 0 ? `
@@ -630,10 +640,10 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       const riverKeywords = ['river', 'a-rosa', 'viking river', 'amawaterways', 'uniworld', 'avalon'];
 
       if (riverKeywords.some(k => msg.includes(k))) {
-        filtered = filtered.filter(c => c.type === 'river');
+        filtered = filtered.filter(c => getCruiseType(c) === 'river');
         console.log('After river filter:', filtered.length);
       } else if (oceanKeywords.some(k => msg.includes(k))) {
-        filtered = filtered.filter(c => c.type === 'ocean');
+        filtered = filtered.filter(c => getCruiseType(c) === 'ocean');
         console.log('After ocean filter:', filtered.length);
       }
 
@@ -785,12 +795,12 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       const sample = getSampleCruises(filteredCruises);
 
       // Count river vs ocean in full database
-      const riverCount = CRUISES.filter(c => c.type === 'river').length;
-      const oceanCount = CRUISES.filter(c => c.type === 'ocean').length;
+      const riverCount = CRUISES.filter(c => getCruiseType(c) === 'river').length;
+      const oceanCount = CRUISES.filter(c => getCruiseType(c) === 'ocean').length;
 
       // Count types in ALL matches (not just sample)
-      const matchRiver = filteredCruises.filter(c => c.type === 'river').length;
-      const matchOcean = filteredCruises.filter(c => c.type === 'ocean').length;
+      const matchRiver = filteredCruises.filter(c => getCruiseType(c) === 'river').length;
+      const matchOcean = filteredCruises.filter(c => getCruiseType(c) === 'ocean').length;
 
       // Debug log
       console.log('Filter debug:', {
@@ -805,7 +815,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       });
 
       const cruiseList = sample.map(c =>
-        `• ${c.ref}: "${c.name}" by ${c.operator} on ${c.ship} | ${c.region} | ${c.nights}N | ${c.start?.split('T')[0]} | ${c.from}→${c.to} | ${c.rating} | £${c.price} | TYPE: ${c.type || 'unknown'}`
+        `• ${c.ref}: "${c.name}" by ${c.operator} on ${c.ship} | ${c.region} | ${c.nights}N | ${c.start?.split('T')[0]} | ${c.from}→${c.to} | ${c.rating} | £${c.price} | TYPE: ${getCruiseType(c)}`
       ).join('\n');
 
       // Get cheapest per cruise line for the prompt
