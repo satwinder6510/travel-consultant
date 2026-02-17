@@ -90,6 +90,13 @@ Available via dropdown:
 
 ## Data Rules
 
+### Itinerary Grouping
+- Cruises grouped by: `operator|ship|name` key
+- Shows cheapest date per itinerary
+- `sailingDates` field = count of available dates
+- `allDates` array = all departure dates for that itinerary
+- Hover on "X Sailing Dates" shows tooltip with all dates
+
 ### Date Filtering
 - **Only show future cruises** (start date >= today)
 - Today's date: 2026-02-17
@@ -216,3 +223,6 @@ python -m http.server 8080
 | 2026-02-17 | SVG icons not emojis | Professional look |
 | 2026-02-17 | Ship images from Widgety CDN | Real photos, not placeholders |
 | 2026-02-17 | Image fallback on error | Graceful degradation if image fails |
+| 2026-02-17 | Actual cabin names from Widgety | Show real cabin grade names, not generic labels |
+| 2026-02-17 | Itinerary grouping | Group same cruises by operator+ship+name, show cheapest |
+| 2026-02-17 | Sailing dates hover modal | When multiple dates exist, hover shows all available dates |

@@ -12,6 +12,43 @@
     .animate-bounce-dot { animation: bounce 1s infinite; }
     .animate-bounce-dot:nth-child(2) { animation-delay: 0.1s; }
     .animate-bounce-dot:nth-child(3) { animation-delay: 0.2s; }
+
+    /* Sailing dates tooltip */
+    .sailing-dates-trigger {
+      position: relative;
+      cursor: pointer;
+    }
+    .sailing-dates-trigger:hover .sailing-dates-tooltip {
+      display: block;
+    }
+    .sailing-dates-tooltip {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      margin-top: 8px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      padding: 12px 16px;
+      z-index: 50;
+      min-width: 180px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    .sailing-dates-tooltip::before {
+      content: '';
+      position: absolute;
+      top: -6px;
+      left: 16px;
+      width: 12px;
+      height: 12px;
+      background: white;
+      border-left: 1px solid #e5e7eb;
+      border-top: 1px solid #e5e7eb;
+      transform: rotate(45deg);
+    }
   </style>
 </head>
 <body class="bg-gradient-to-b from-blue-50 to-white min-h-screen">
@@ -623,7 +660,20 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                           </svg>
                           ${c.sailingDates > 1
-                            ? `<span class="text-blue-600 font-medium">${c.sailingDates} Sailing Dates</span>`
+                            ? `<span class="sailing-dates-trigger">
+                                <span class="text-blue-600 font-medium underline decoration-dotted">${c.sailingDates} Sailing Dates</span>
+                                <div class="sailing-dates-tooltip">
+                                  <div class="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Available Dates</div>
+                                  <div class="space-y-1.5">
+                                    ${(c.allDates || []).sort().map(d => `
+                                      <div class="text-sm text-gray-700 flex items-center gap-2">
+                                        <span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                                        ${new Date(d).toLocaleDateString('en-GB', {weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'})}
+                                      </div>
+                                    `).join('')}
+                                  </div>
+                                </div>
+                              </span>`
                             : (c.start ? new Date(c.start).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}) : 'TBC')}
                         </span>
                         <span class="flex items-center gap-1.5">
