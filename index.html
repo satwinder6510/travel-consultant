@@ -439,58 +439,137 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
           </div>
 
           <!-- Cruise Cards Grid -->
-          <div class="p-4">
+          <div class="p-4 bg-gray-100">
             <div class="max-w-5xl mx-auto space-y-4">
               ${displayCruises.slice(0, 20).map(c => `
-                <div class="bg-white rounded-xl shadow-md border overflow-hidden hover:shadow-lg transition-shadow">
+                <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                   <div class="flex flex-col md:flex-row">
-                    <!-- Left: Image placeholder with operator -->
-                    <div class="md:w-72 h-48 md:h-auto bg-gradient-to-br from-blue-100 to-blue-200 relative flex-shrink-0">
-                      <div class="absolute top-3 left-3 bg-white px-3 py-1 rounded shadow text-sm font-bold text-gray-800">${c.operator}</div>
-                      <div class="absolute bottom-3 left-3 bg-black/70 text-white px-2 py-1 rounded text-xs">${c.type === 'ocean' ? 'Ocean Cruise' : 'River Cruise'}</div>
-                      <div class="w-full h-full flex items-center justify-center text-6xl opacity-30">${c.type === 'ocean' ? '🚢' : '🏞️'}</div>
+                    <!-- Left: Image with operator logo -->
+                    <div class="md:w-80 h-52 md:h-auto bg-gradient-to-br from-sky-200 via-blue-300 to-indigo-400 relative flex-shrink-0">
+                      <!-- Operator Logo -->
+                      <div class="absolute top-3 left-3 bg-white px-3 py-2 rounded shadow-md">
+                        <span class="font-bold text-gray-800 text-sm">${c.operator}</span>
+                      </div>
+                      <!-- Cruise Type Badge -->
+                      <div class="absolute top-3 right-3 bg-gray-900/80 text-white px-3 py-1 rounded text-xs font-medium">
+                        ${c.type === 'ocean' ? 'Cruise Only' : 'River Cruise'}
+                      </div>
+                      <!-- Ship illustration -->
+                      <div class="w-full h-full flex items-center justify-center">
+                        <svg class="w-32 h-32 text-white/40" fill="currentColor" viewBox="0 0 24 24">
+                          ${c.type === 'ocean' ?
+                            '<path d="M20 21c-1.39 0-2.78-.47-4-1.32-2.44 1.71-5.56 1.71-8 0C6.78 20.53 5.39 21 4 21H2v2h2c1.38 0 2.74-.35 4-.99 2.52 1.29 5.48 1.29 8 0 1.26.65 2.62.99 4 .99h2v-2h-2zM3.95 19H4c1.6 0 3.02-.88 4-2 .98 1.12 2.4 2 4 2s3.02-.88 4-2c.98 1.12 2.4 2 4 2h.05l1.89-6.68c.08-.26.06-.54-.06-.78s-.34-.42-.6-.5L20 10.62V6c0-1.1-.9-2-2-2h-3V1H9v3H6c-1.1 0-2 .9-2 2v4.62l-1.29.42c-.26.08-.48.26-.6.5s-.15.52-.06.78L3.95 19zM6 6h12v3.97L12 8 6 9.97V6z"/>' :
+                            '<path d="M13 3v2h-2V3h2m0 18v-2h-2v2h2m8-10h-2v2h2v-2M3 11v2h2v-2H3m14.66-4.66l-1.41 1.41 1.41 1.42 1.42-1.42-1.42-1.41M4.93 17.66l1.41-1.41-1.41-1.42-1.42 1.42 1.42 1.41M17.66 17.66l1.42-1.41-1.42-1.42-1.41 1.42 1.41 1.41M6.34 6.34L4.93 7.76l1.41 1.41 1.42-1.41-1.42-1.42M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6z"/>'}
+                        </svg>
+                      </div>
                     </div>
 
                     <!-- Right: Details -->
-                    <div class="flex-1 p-4">
-                      <div class="flex flex-col md:flex-row md:justify-between gap-4">
-                        <!-- Cruise Info -->
-                        <div class="flex-1">
-                          <h3 class="text-xl font-bold text-gray-900 mb-2">${c.region} : ${c.name || c.region}</h3>
-                          <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 mb-3">
-                            <span>🚢 ${c.ship}</span>
-                            <span>📅 ${c.start ? new Date(c.start).toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'}) : 'TBC'}</span>
-                            <span>🌙 ${c.nights} nights</span>
-                            <span>⚓ ${c.from || 'TBC'}</span>
-                          </div>
-                          ${c.to && c.to !== c.from ? `<div class="text-sm text-gray-500 mb-2">→ ${c.to}</div>` : ''}
-                          <div class="text-xs text-gray-400">${c.rating || ''}</div>
-                        </div>
+                    <div class="flex-1 p-5">
+                      <!-- Title -->
+                      <h3 class="text-xl font-bold text-gray-900 mb-3">${c.region} : ${c.name || c.region}</h3>
 
-                        <!-- Pricing -->
-                        <div class="md:w-48 md:border-l md:pl-4">
-                          <div class="text-xs text-gray-500 mb-2">From:</div>
-                          <div class="space-y-1 text-sm">
-                            ${c.price && parseFloat(c.price) > 0 ? `
-                              <div class="flex justify-between">
-                                <span class="text-gray-600">${c.type === 'ocean' ? 'Inside' : 'Outside'}</span>
-                                <span class="font-bold text-green-700">£${parseFloat(c.price).toLocaleString()}</span>
-                              </div>` : ''}
-                            ${c.balcony && parseFloat(c.balcony) > 0 ? `
-                              <div class="flex justify-between">
-                                <span class="text-gray-600">Balcony</span>
-                                <span class="font-semibold">£${parseFloat(c.balcony).toLocaleString()}</span>
-                              </div>` : ''}
-                            ${c.suite && parseFloat(c.suite) > 0 ? `
-                              <div class="flex justify-between">
-                                <span class="text-gray-600">Suite</span>
-                                <span class="font-semibold">£${parseFloat(c.suite).toLocaleString()}</span>
-                              </div>` : ''}
-                          </div>
-                          <button class="mt-3 w-full bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                            View Details
-                          </button>
+                      <!-- Details Row -->
+                      <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600 mb-4">
+                        <span class="flex items-center gap-1.5">
+                          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                          </svg>
+                          ${c.ship}
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                          </svg>
+                          ${c.start ? new Date(c.start).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}) : 'TBC'}
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                          </svg>
+                          ${c.nights} nights
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          </svg>
+                          ${c.from || 'TBC'}
+                        </span>
+                      </div>
+
+                      <!-- Cruise Includes -->
+                      <div class="mb-4">
+                        <p class="text-sm font-semibold text-gray-700 mb-2">Cruise Includes:</p>
+                        <div class="grid grid-cols-2 gap-1 text-sm text-gray-600">
+                          <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            Full-board Dining
+                          </span>
+                          <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            Entertainment
+                          </span>
+                          ${c.rating === 'Luxury' || c.rating === 'Ultra Luxury' ? `
+                          <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            Drinks Included
+                          </span>
+                          <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            Gratuities Included
+                          </span>
+                          ` : `
+                          <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            Pool & Spa
+                          </span>
+                          <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            ${c.type === 'ocean' ? 'Kids Club' : 'Shore Excursions'}
+                          </span>
+                          `}
                         </div>
+                      </div>
+
+                      <!-- Rating badge -->
+                      ${c.rating ? `<span class="inline-block px-2 py-1 text-xs font-medium rounded ${
+                        c.rating === 'Ultra Luxury' ? 'bg-purple-100 text-purple-800' :
+                        c.rating === 'Luxury' ? 'bg-amber-100 text-amber-800' :
+                        'bg-blue-100 text-blue-800'
+                      }">${c.rating}</span>` : ''}
+                    </div>
+
+                    <!-- Pricing Panel -->
+                    <div class="md:w-52 bg-gray-50 p-4 border-l flex flex-col justify-between">
+                      <div>
+                        <p class="text-xs text-gray-500 mb-3 font-medium">From:</p>
+                        <div class="space-y-2">
+                          ${c.price && parseFloat(c.price) > 0 ? `
+                            <div class="flex justify-between items-center">
+                              <span class="text-sm text-gray-600">${c.type === 'ocean' ? 'Inside' : 'Outside'}</span>
+                              <span class="text-lg font-bold text-gray-900">£${parseFloat(c.price).toLocaleString()}</span>
+                            </div>` : ''}
+                          ${c.balcony && parseFloat(c.balcony) > 0 ? `
+                            <div class="flex justify-between items-center">
+                              <span class="text-sm text-gray-600">Balcony</span>
+                              <span class="text-base font-semibold text-gray-700">£${parseFloat(c.balcony).toLocaleString()}</span>
+                            </div>` : ''}
+                          ${c.suite && parseFloat(c.suite) > 0 ? `
+                            <div class="flex justify-between items-center">
+                              <span class="text-sm text-gray-600">Suite</span>
+                              <span class="text-base font-semibold text-gray-700">£${parseFloat(c.suite).toLocaleString()}</span>
+                            </div>` : ''}
+                        </div>
+                      </div>
+                      <div class="mt-4 space-y-2">
+                        <a href="#" class="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                          View Itinerary
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </a>
+                        <button class="w-full bg-rose-600 text-white py-2.5 px-4 rounded text-sm font-bold hover:bg-rose-700 transition-colors uppercase tracking-wide">
+                          View More
+                        </button>
                       </div>
                     </div>
                   </div>
