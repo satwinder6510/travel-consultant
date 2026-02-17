@@ -186,7 +186,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
     let wizardAnswers = {
       type: null,      // 'river' or 'ocean'
       region: null,    // destination
-      travelers: null  // 1, 2, or '3+'
+      when: null       // month or 'anytime'
     };
     let wizardComplete = false;
 
@@ -194,6 +194,14 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       river: ['Danube', 'Rhine', 'Douro', 'Rhône', 'Seine', 'Mekong', 'Nile'],
       ocean: ['Caribbean', 'Mediterranean', 'Alaska', 'Northern Europe', 'Asia & Pacific', 'Australia & NZ']
     };
+
+    const MONTHS = [
+      { value: 'anytime', label: 'Anytime', icon: '📅' },
+      { value: '03,04,05', label: 'Spring (Mar-May)', icon: '🌷' },
+      { value: '06,07,08', label: 'Summer (Jun-Aug)', icon: '☀️' },
+      { value: '09,10,11', label: 'Autumn (Sep-Nov)', icon: '🍂' },
+      { value: '12,01,02', label: 'Winter (Dec-Feb)', icon: '❄️' }
+    ];
 
     function selectWizardOption(step, value) {
       if (step === 1) {
@@ -204,7 +212,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
         wizardAnswers.region = value;
         wizardStep = 3;
       } else if (step === 3) {
-        wizardAnswers.travelers = value;
+        wizardAnswers.when = value;
         completeWizard();
       }
       render();
@@ -249,6 +257,13 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
           if (!cruiseRegion.includes(region) && !region.includes(cruiseRegion)) return false;
         }
 
+        // When filter (month/season)
+        if (wizardAnswers.when && wizardAnswers.when !== 'anytime') {
+          const months = wizardAnswers.when.split(',');
+          const cruiseMonth = c.start.substring(5, 7); // Extract MM from YYYY-MM-DD
+          if (!months.includes(cruiseMonth)) return false;
+        }
+
         return true;
       });
       // Group by itinerary and show cheapest per group
@@ -258,7 +273,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
 
     function resetWizard() {
       wizardStep = 1;
-      wizardAnswers = { type: null, region: null, travelers: null };
+      wizardAnswers = { type: null, region: null, when: null };
       wizardComplete = false;
       messages = [];
       userTurns = 0;
@@ -518,36 +533,19 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
                 </div>
               </div>
 
-              <!-- Step 3: Travelers -->
+              <!-- Step 3: When -->
               <div class="${step3Class}">
                 <button onclick="goBackWizard()" class="text-blue-600 text-sm mb-4 hover:underline">← Back</button>
-                <h2 class="text-xl font-bold text-gray-900 mb-2">How many travelers?</h2>
-                <p class="text-gray-500 text-sm mb-6">This helps us show the right cabin options and prices.</p>
+                <h2 class="text-xl font-bold text-gray-900 mb-2">When do you want to travel?</h2>
+                <p class="text-gray-500 text-sm mb-6">Select a season or choose anytime for all available dates.</p>
                 <div class="space-y-3">
-                  <button onclick="selectWizardOption(3, 1)"
-                    class="w-full p-4 text-left border-2 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center gap-4">
-                    <span class="text-2xl">👤</span>
-                    <div>
-                      <div class="font-semibold text-gray-900">Solo</div>
-                      <div class="text-sm text-gray-500">Traveling alone</div>
-                    </div>
-                  </button>
-                  <button onclick="selectWizardOption(3, 2)"
-                    class="w-full p-4 text-left border-2 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center gap-4">
-                    <span class="text-2xl">👫</span>
-                    <div>
-                      <div class="font-semibold text-gray-900">Couple</div>
-                      <div class="text-sm text-gray-500">2 travelers</div>
-                    </div>
-                  </button>
-                  <button onclick="selectWizardOption(3, '3+')"
-                    class="w-full p-4 text-left border-2 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center gap-4">
-                    <span class="text-2xl">👨‍👩‍👧</span>
-                    <div>
-                      <div class="font-semibold text-gray-900">Family / Group</div>
-                      <div class="text-sm text-gray-500">3 or more travelers</div>
-                    </div>
-                  </button>
+                  ${MONTHS.map(m => `
+                    <button onclick="selectWizardOption(3, '${m.value}')"
+                      class="w-full p-4 text-left border-2 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center gap-4">
+                      <span class="text-2xl">${m.icon}</span>
+                      <div class="font-semibold text-gray-900">${m.label}</div>
+                    </button>
+                  `).join('')}
                 </div>
               </div>
             </div>
@@ -582,7 +580,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
             <div>
               <h1 class="text-2xl font-bold">Cruise Consultant</h1>
               <p class="text-blue-200 text-sm">${wizardComplete ?
-                `${wizardAnswers.type === 'river' ? '🏞️ River' : '🚢 Ocean'} · ${wizardAnswers.region} · ${wizardAnswers.travelers === 1 ? 'Solo' : wizardAnswers.travelers === 2 ? 'Couple' : 'Group'}`
+                `${wizardAnswers.type === 'river' ? '🏞️ River' : '🚢 Ocean'} · ${wizardAnswers.region} · ${MONTHS.find(m => m.value === wizardAnswers.when)?.label || 'Anytime'}`
                 : 'Find your perfect cruise'}</p>
             </div>
             <div class="text-right flex items-center gap-4">
