@@ -191,9 +191,11 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
     let wizardComplete = false;
 
     const REGIONS = {
-      river: ['Danube', 'Rhine', 'Douro', 'Rhône', 'Seine', 'Mekong', 'Nile'],
-      ocean: ['Caribbean', 'Mediterranean', 'Alaska', 'Northern Europe', 'Asia & Pacific', 'Australia & NZ']
+      river: ['Danube', 'Rhine', 'Douro', 'Rhône', 'Seine', 'Mekong', 'Nile', 'Chobe & Zambezi', 'Amazon'],
+      ocean: ['Caribbean', 'Mediterranean', 'Alaska', 'Northern Europe', 'Asia', 'Australia & NZ', 'South America', 'Pacific']
     };
+
+    let currentRegionFilter = '';  // Region dropdown filter
 
     const MONTHS = [
       { value: 'anytime', label: 'Anytime', icon: '📅' },
@@ -229,6 +231,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       wizardComplete = true;
       currentOperatorFilter = '';
       currentDurationFilter = '';
+      currentRegionFilter = '';
       applyWizardFilters();
       // Sort by price initially
       displayCruises.sort((a, b) => getBasePrice(a) - getBasePrice(b));
@@ -280,6 +283,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       accumulatedFilters.clear();
       currentOperatorFilter = '';
       currentDurationFilter = '';
+      currentRegionFilter = '';
       filteredCruises = CRUISES.filter(c =>
         c.start && c.start >= TODAY &&
         hasValidPrice(c)
@@ -316,6 +320,11 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       applyDisplayFilters();
     }
 
+    function filterByRegion(region) {
+      currentRegionFilter = region;
+      applyDisplayFilters();
+    }
+
     function applyDisplayFilters() {
       // Start with grouped cruises from wizard filters
       let results = groupCruisesByItinerary(filteredCruises);
@@ -341,6 +350,11 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
             results = results.filter(c => c.nights >= 15);
             break;
         }
+      }
+
+      // Apply region filter
+      if (currentRegionFilter) {
+        results = results.filter(c => c.region === currentRegionFilter);
       }
 
       // Sort by price
@@ -619,6 +633,15 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
                     <option value="6-9" ${currentDurationFilter === '6-9' ? 'selected' : ''}>6-9 nights</option>
                     <option value="10-14" ${currentDurationFilter === '10-14' ? 'selected' : ''}>10-14 nights</option>
                     <option value="15+" ${currentDurationFilter === '15+' ? 'selected' : ''}>15+ nights</option>
+                  </select>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-sm text-gray-500">Region:</span>
+                  <select onchange="filterByRegion(this.value)" class="text-sm border rounded px-2 py-1">
+                    <option value="">All Regions</option>
+                    ${[...new Set(groupCruisesByItinerary(filteredCruises).map(c => c.region))].sort().map(r =>
+                      `<option value="${r}" ${currentRegionFilter === r ? 'selected' : ''}>${r}</option>`
+                    ).join('')}
                   </select>
                 </div>
                 <div class="flex items-center gap-2">
