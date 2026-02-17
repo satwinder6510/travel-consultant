@@ -736,25 +736,29 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
           `}
         </div>
 
-        <!-- Chat Filter Bar -->
+        <!-- Ask Inder Bar -->
         ${wizardComplete ? `
-        <div class="border-t bg-white p-3 shadow-lg">
+        <div class="border-t bg-gradient-to-r from-blue-900 to-blue-800 p-4 shadow-lg">
           <div class="max-w-5xl mx-auto">
-            <div class="flex gap-3 items-center">
+            <div class="flex gap-4 items-center">
+              <div class="flex-shrink-0 text-white">
+                <div class="text-lg font-bold">Ask Inder</div>
+                <div class="text-xs text-blue-200">Your online cruise expert</div>
+              </div>
               <div class="flex-1 relative">
-                <input type="text" id="messageInput" placeholder="Filter: e.g. 'under £2000', 'July', '7 nights', 'balcony cabin'..."
-                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-24"
+                <input type="text" id="messageInput" placeholder="Try: 'under £2000', 'July departures', '7 nights', 'with balcony'..."
+                  class="w-full px-4 py-3 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 pr-20 shadow-inner"
                   onkeypress="if(event.key==='Enter')sendMessage()" ${isLoading ? 'disabled' : ''}>
                 <button onclick="sendMessage()" ${isLoading ? 'disabled' : ''}
-                  class="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 disabled:opacity-50 text-sm">
-                  Filter
+                  class="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-rose-600 text-white rounded font-medium hover:bg-rose-700 disabled:opacity-50 text-sm">
+                  Ask
                 </button>
               </div>
             </div>
-            ${messages.length > 0 ? `
-              <div class="mt-2 text-sm text-gray-500">
-                Active filters: ${Array.from(accumulatedFilters).join(', ') || 'None'}
-                <button onclick="clearAllFilters()" class="ml-2 text-red-500 hover:underline">Clear all</button>
+            ${accumulatedFilters.size > 0 ? `
+              <div class="mt-2 text-sm text-blue-200">
+                Active filters: ${Array.from(accumulatedFilters).join(', ')}
+                <button onclick="clearAllFilters()" class="ml-2 text-rose-300 hover:text-white hover:underline">Clear all</button>
               </div>
             ` : ''}
           </div>
