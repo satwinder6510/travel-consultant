@@ -18,7 +18,9 @@
       position: relative;
       cursor: pointer;
     }
-    .sailing-dates-trigger:hover .sailing-dates-tooltip {
+    /* Show on hover (desktop) or when active (mobile tap) */
+    .sailing-dates-trigger:hover .sailing-dates-tooltip,
+    .sailing-dates-tooltip.active {
       display: block;
     }
     .sailing-dates-tooltip {
@@ -397,6 +399,30 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       return Object.values(groups);
     }
 
+    // Toggle sailing dates tooltip (for mobile tap)
+    function toggleSailingDates(event, tooltipId) {
+      event.stopPropagation();
+      const tooltip = document.getElementById(tooltipId);
+      if (!tooltip) return;
+
+      // Close all other tooltips first
+      document.querySelectorAll('.sailing-dates-tooltip.active').forEach(t => {
+        if (t.id !== tooltipId) t.classList.remove('active');
+      });
+
+      // Toggle this one
+      tooltip.classList.toggle('active');
+    }
+
+    // Close tooltips when clicking outside
+    document.addEventListener('click', function(event) {
+      if (!event.target.closest('.sailing-dates-trigger')) {
+        document.querySelectorAll('.sailing-dates-tooltip.active').forEach(t => {
+          t.classList.remove('active');
+        });
+      }
+    });
+
     // Get best cruise options - smart about single vs multiple operators
     function getBestCruises(cruises, limit = 5) {
       if (cruises.length === 0) return [];
@@ -660,9 +686,9 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                           </svg>
                           ${c.sailingDates > 1
-                            ? `<span class="sailing-dates-trigger">
+                            ? `<span class="sailing-dates-trigger" onclick="toggleSailingDates(event, 'dates-${c.ref}')">
                                 <span class="text-blue-600 font-medium underline decoration-dotted">${c.sailingDates} Sailing Dates</span>
-                                <div class="sailing-dates-tooltip">
+                                <div id="dates-${c.ref}" class="sailing-dates-tooltip">
                                   <div class="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Available Dates</div>
                                   <div class="space-y-1.5">
                                     ${(c.allDates || []).sort().map(d => `
