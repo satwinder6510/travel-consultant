@@ -16,9 +16,10 @@ On load, a modal guides the user through key choices:
 - Ocean cruise (Caribbean, Mediterranean, Alaska, etc.)
 
 **Step 2: Region/Destination**
-- Options change based on Step 1
-- River: Danube, Rhine, Douro, Rhone, Seine, Mekong, Nile
-- Ocean: Caribbean, Mediterranean, Alaska, Northern Europe, Asia & Pacific, Australia & NZ
+- Options change based on Step 1 (most popular regions)
+- River: Danube, Rhine, Douro, Rhône, Seine, Mekong, Nile, Chobe & Zambezi, Amazon
+- Ocean: Caribbean, Mediterranean, Alaska, Northern Europe, Asia, Australia & NZ, South America, Pacific
+- Note: All regions available via dropdown filter on results page
 
 **Step 3: When to Travel**
 - Anytime - all available dates
@@ -40,7 +41,7 @@ After wizard completion:
 - Filters apply instantly (no API call)
 - Active filters shown with "Clear all" option
 - Filters accumulate - each search adds to previous
-- Dropdown filters: Cruise Line, Duration, Sort
+- Dropdown filters: Cruise Line, Duration, Region, Sort
 
 ---
 
@@ -233,3 +234,4 @@ python -m http.server 8080
 | 2026-02-17 | Sailing dates mobile support | Tap to toggle tooltip on mobile devices |
 | 2026-02-17 | "Ask Inder" branding | Rebranded filter bar as AI cruise expert |
 | 2026-02-17 | Season selector instead of travelers | No single pricing data available from Widgety yet |
+| 2026-02-17 | Region dropdown filter | Wizard shows popular regions, dropdown shows all available |
