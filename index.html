@@ -208,8 +208,9 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
 
         return true;
       });
-      displayCruises = [...filteredCruises];
-      console.log('Wizard filters applied:', wizardAnswers, '→', filteredCruises.length, 'results');
+      // Group by itinerary and show cheapest per group
+      displayCruises = groupCruisesByItinerary(filteredCruises);
+      console.log('Wizard filters applied:', wizardAnswers, '→', filteredCruises.length, 'sailings →', displayCruises.length, 'itineraries');
     }
 
     function resetWizard() {
@@ -267,6 +268,32 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       if (!shipName || !SHIPS.length) return null;
       const ship = SHIPS.find(s => s.name && s.name.toLowerCase() === shipName.toLowerCase());
       return ship?.img || null;
+    }
+
+    // Group cruises by itinerary and get cheapest per group
+    function groupCruisesByItinerary(cruises) {
+      const groups = {};
+      for (const c of cruises) {
+        // Group key: operator + ship + cruise name
+        const key = `${c.operator}|${c.ship}|${c.name}`;
+        if (!groups[key]) {
+          groups[key] = {
+            ...c,
+            sailingDates: 1,
+            allDates: [c.start]
+          };
+        } else {
+          groups[key].sailingDates++;
+          groups[key].allDates.push(c.start);
+          // Keep the cheapest
+          if (parseFloat(c.price) < parseFloat(groups[key].price)) {
+            const sailingDates = groups[key].sailingDates;
+            const allDates = groups[key].allDates;
+            groups[key] = { ...c, sailingDates, allDates };
+          }
+        }
+      }
+      return Object.values(groups);
     }
 
     // Get best cruise options - smart about single vs multiple operators
@@ -448,7 +475,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
           <!-- Sort & Filter Bar -->
           <div class="bg-gray-50 border-b px-4 py-3 sticky top-0 z-10">
             <div class="max-w-5xl mx-auto flex items-center justify-between">
-              <div class="text-sm text-gray-600">${displayCruises.length.toLocaleString()} cruises found</div>
+              <div class="text-sm text-gray-600">${displayCruises.length.toLocaleString()} itineraries (${filteredCruises.length.toLocaleString()} sailing dates)</div>
               <div class="flex items-center gap-4">
                 <span class="text-sm text-gray-500">Sort by:</span>
                 <select onchange="sortCruises(this.value)" class="text-sm border rounded px-2 py-1">
@@ -510,7 +537,9 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
                           <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                           </svg>
-                          ${c.start ? new Date(c.start).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}) : 'TBC'}
+                          ${c.sailingDates > 1
+                            ? `<span class="text-blue-600 font-medium">${c.sailingDates} Sailing Dates</span>`
+                            : (c.start ? new Date(c.start).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}) : 'TBC')}
                         </span>
                         <span class="flex items-center gap-1.5">
                           <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -573,7 +602,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
 
               ${displayCruises.length > 20 ? `
                 <div class="text-center py-4">
-                  <p class="text-gray-500 text-sm">Showing 20 of ${displayCruises.length.toLocaleString()} cruises. Use the chat to narrow your search.</p>
+                  <p class="text-gray-500 text-sm">Showing 20 of ${displayCruises.length.toLocaleString()} itineraries. Use the filter bar to narrow your search.</p>
                 </div>
               ` : ''}
             </div>
@@ -917,12 +946,13 @@ Keep it to 2 sentences. Point them to the buttons. Do not list cruises yet.
       const wizardBase = `${wizardAnswers.type} ${wizardAnswers.region}`;
       const allFilters = wizardBase + ' ' + Array.from(accumulatedFilters).join(' ');
       filteredCruises = filterCruises(allFilters);
-      displayCruises = [...filteredCruises];
+      // Group by itinerary and show cheapest per group
+      displayCruises = groupCruisesByItinerary(filteredCruises);
 
       // Sort by price
       displayCruises.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
 
-      console.log('Filtering with:', allFilters, '→', filteredCruises.length);
+      console.log('Filtering with:', allFilters, '→', filteredCruises.length, 'sailings →', displayCruises.length, 'itineraries');
       render();
     }
 
