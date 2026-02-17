@@ -1,6 +1,6 @@
 # Cruise Consultant - Rulebook & Design Decisions
 
-**Last Updated:** 2026-02-16
+**Last Updated:** 2026-02-17
 
 This document tracks all UX decisions, bug fixes, and refinements made to the cruise consultant app. Review before making changes.
 
@@ -8,29 +8,83 @@ This document tracks all UX decisions, bug fixes, and refinements made to the cr
 
 ## UX Flow
 
-### 1. Initial State
-- **Clean prompt only** - no filter buttons shown initially
-- Welcome message: "What kind of cruise are you looking for?"
-- User types their request in natural language
+### 1. Wizard Modal (3 Steps)
+On load, a modal guides the user through key choices:
 
-### 2. After First Response
-- Claude acknowledges: "I found X cruises matching your search"
-- **Filter buttons appear** with message: "Click as many as apply to narrow your results"
-- Buttons grouped: Type, Region, When, Duration, Budget
+**Step 1: Cruise Type**
+- River cruise (Danube, Rhine, Douro, etc.)
+- Ocean cruise (Caribbean, Mediterranean, Alaska, etc.)
 
-### 3. Filter Selection
-- Multi-select: users can click multiple buttons
-- Selected buttons turn blue
-- Count updates live in header as filters toggle
-- Green "Find Cruises" button appears when filters selected
-- Filters **accumulate** across conversation (don't reset on each turn)
+**Step 2: Region/Destination**
+- Options change based on Step 1
+- River: Danube, Rhine, Douro, Rhone, Seine, Mekong, Nile
+- Ocean: Caribbean, Mediterranean, Alaska, Northern Europe, Asia & Pacific, Australia & NZ
 
-### 4. Results Display (after 2+ interactions)
-- Cards appear showing best cruise options
-- **Smart display logic:**
-  - Single operator (e.g., "Royal Caribbean"): Show cheapest 5 from that operator
-  - Multiple operators: Show cheapest per cruise line for variety
-- Header adapts: "Best Royal Caribbean prices" vs "Best price per cruise line"
+**Step 3: Number of Travelers**
+- Solo (1) - affects cabin pricing/single supplements
+- Couple (2) - standard per-person pricing
+- Family/Group (3+) - larger cabins needed
+
+### 2. Results Display
+After wizard completion:
+- Full cruise cards appear immediately
+- Sorted by price (low to high) by default
+- Shows first 20 results
+- Filter bar at bottom for refinements
+
+### 3. Filtering
+- Text-based filter bar (no multi-select buttons)
+- Type natural language: "under £2000", "July", "7 nights"
+- Filters apply instantly (no API call)
+- Active filters shown with "Clear all" option
+- Filters accumulate - each search adds to previous
+
+---
+
+## Card Design
+
+### Layout (matches flightsandpackages.com)
+Each card has 3 columns:
+
+**Left: Image Area**
+- Gradient background (sky blue)
+- Operator name in white box (top-left)
+- Cruise type badge (top-right): "Cruise Only" / "River Cruise"
+- Ship icon placeholder
+
+**Center: Cruise Details**
+- Title: "Region : Cruise Name"
+- Details row with SVG icons:
+  - Ship icon + ship name
+  - Calendar icon + departure date
+  - Clock icon + nights
+  - Location icon + embarkation port
+- Rating badge (Premium/Luxury/Ultra Luxury)
+
+**Right: Pricing Panel**
+- "From:" label
+- All cabin prices shown:
+  - Inside (ocean) / Outside (river) - main price
+  - Balcony price (if available)
+  - Suite price (if available)
+- "View Itinerary" link
+- Red "VIEW MORE" button
+
+### Data Rules
+- **Only show data we have** - no hardcoded "Cruise Includes" or fake features
+- Cabin type label: "Inside" for ocean, "Outside" for river
+- Prices formatted with £ and comma separators
+- Dates formatted: "01 May 2026"
+
+---
+
+## Sorting Options
+
+Available via dropdown:
+- Price: Low to High (default)
+- Price: High to Low
+- Departure Date
+- Duration (nights)
 
 ---
 
@@ -38,94 +92,44 @@ This document tracks all UX decisions, bug fixes, and refinements made to the cr
 
 ### Date Filtering
 - **Only show future cruises** (start date >= today)
-- Today's date passed to Claude in prompt
-- Claude instructed: "NEVER mention 2025 - it's now 2026!"
+- Today's date: 2026-02-17
 
 ### Price Filtering
 - **Exclude £0 prices** and missing prices
-- Sort by price ascending for "cheapest" displays
+- Show all available cabin types (price, balcony, suite)
+- Hide cabin type if price is 0 or missing
 
 ### Region Matching
 - Case-insensitive
-- Uses `includes()` not exact match (handles "Caribbean & Mexico" etc.)
-
----
-
-## Prompt Rules for Claude
-
-### First Response (userTurns === 1)
-- Acknowledge their search
-- State the count: "I found X cruises"
-- Point them to filter buttons
-- **Do NOT list specific cruises yet**
-
-### Subsequent Responses (userTurns >= 2)
-- Show best options (max 5)
-- Single operator: list ships/dates/prices
-- Multiple operators: list cheapest per line
-- End with: "Use the filter buttons below to narrow further"
-- **Ask ONE refinement question** (not multiple)
-
-### Always
-- Only reference cruises from the provided data
-- Never invent cruise names, ships, or prices
-- Include sailing dates in format: "26 Apr 2026"
-
----
-
-## Card Display
-
-### When to Show
-- After 2+ user interactions
-- When `displayCruises.length > 0`
-
-### What to Show
-- Operator name (bold)
-- Ship name
-- Region + nights
-- Embarkation port with emoji: 📍 Miami
-- Sailing date with emoji: ⛵ 16 Mar 2026
-- Price: £X,XXX
-- Type badge: ocean/river
-
-### Data Source
-- Uses `displayCruises` (cached at same time as prompt data)
-- Ensures cards match what Claude describes
+- Uses `includes()` not exact match
 
 ---
 
 ## Filter Logic
 
-### Accumulated Filters
-- `accumulatedFilters` Set persists across conversation
-- New selections ADD to accumulated, not replace
-- Clicking button after Claude's question maintains context
-- "Clear" button resets everything
+### Wizard Base Filters
+Applied after wizard completion:
+1. Cruise type (river/ocean)
+2. Region
+3. Future dates only
+4. Valid prices only
+
+### Text Filter Additions
+User can type to add filters:
+- Budget: "under £2000", "budget", "luxury"
+- Duration: "7 nights", "week", "10-14 nights"
+- Dates: "July", "summer", "Christmas"
+- Operators: "Viking", "NCL", "Royal Caribbean"
 
 ### Filter Matching (in `filterCruises()`)
 1. Start with future cruises + valid prices
 2. Type: river/ocean keywords
 3. Region: destination keywords map to region field
 4. Duration: specific ranges (3-5, 7, 10-14 nights)
-5. Budget: price ranges
+5. Budget: price ranges and keywords
 6. Luxury: rating field
 7. Dates: month/season keywords
-
----
-
-## Known Issues Fixed
-
-| Issue | Fix |
-|-------|-----|
-| Cards showing different data than Claude | Use `displayCruises` cached at prompt build time |
-| Past dates (2025) suggested | Filter to future only + tell Claude current date |
-| £0 prices appearing | Filter out price <= 0 |
-| Mediterranean showing for Caribbean search | Case-insensitive region matching |
-| 1-night cruises for "10-14 nights" | Explicit range parsing for button values |
-| Button click loses context | Accumulated filters across conversation |
-| Multiple questions overwhelming | Prompt says "ONE question only" |
-| Question loop never showing results | After 2 turns, show results + continue refining |
-| Single cruise line showing 1 result | Detect single operator, show multiple options |
+8. Operators: cruise line names
 
 ---
 
@@ -133,21 +137,25 @@ This document tracks all UX decisions, bug fixes, and refinements made to the cr
 
 ```
 cruise-consultant/
-├── index.html      # Main app (single file)
-├── worker.js       # Cloudflare Worker (API proxy)
-├── wrangler.toml   # Worker config
-├── RULEBOOK.md     # This file
-└── *.json          # Local data files (ships, operators)
+├── index.html          # Main app (single file)
+├── worker.js           # Cloudflare Worker (API proxy)
+├── wrangler.toml       # Worker config
+├── RULEBOOK.md         # This file
+├── cruise-data-*.json  # Local data files
 ```
 
 Data hosted on Cloudflare R2:
-- `cruise-data-full.json` (101,638 cruises)
+- `cruise-data-full.json` - main cruise inventory
+
+Local data files:
+- `cruise-data-ships-all.json` - ship details
+- `cruise-data-operators.json` - operator details
 
 ---
 
 ## Console Debugging
 
-Debug logs added at each filter step:
+Debug logs at each filter step:
 - "Filtering with:" - shows search string
 - "After date/price filter:" - count after base filter
 - "After ocean/river filter:" - count after type
@@ -160,11 +168,23 @@ Check browser console (F12) when filters seem wrong.
 
 ## Deployment
 
-1. Push to GitHub: `git push`
-2. GitHub Pages auto-deploys from main branch
-3. Cache-busting meta tags added (no-cache)
-4. Hard refresh (Ctrl+Shift+R) if changes don't appear
-5. Title includes "v2" to verify deployment
+### GitHub
+```bash
+git add .
+git commit -m "Description"
+git push
+```
+
+### Local Testing
+File:// protocol blocks fetch requests. Use local server:
+```bash
+python -m http.server 8080
+# Then open http://localhost:8080
+```
+
+### Cloudflare
+- Worker: `cruise-api` via wrangler
+- Static files: R2 bucket `cruise-data`
 
 ---
 
@@ -172,5 +192,19 @@ Check browser console (F12) when filters seem wrong.
 
 - Worker URL: `https://travel-consultant.satwinder-a59.workers.dev/`
 - Model: `claude-sonnet-4-20250514`
-- Max tokens: 8192
-- API key stored in Cloudflare Worker env (ANTHROPIC_API_KEY)
+- Note: Current UX uses instant local filtering, not API calls for search
+
+---
+
+## Design Decisions Log
+
+| Date | Decision | Reason |
+|------|----------|--------|
+| 2026-02-17 | Wizard modal instead of chat-first | Cleaner UX, focused choices |
+| 2026-02-17 | 3 questions: Type, Region, Travelers | Most impactful for narrowing results |
+| 2026-02-17 | Full cards not compact | Match existing website style |
+| 2026-02-17 | All cabin prices shown | Users want to compare options |
+| 2026-02-17 | Inside/Outside cabin labels | Inside=ocean base, Outside=river base |
+| 2026-02-17 | Removed hardcoded "Cruise Includes" | Don't show data we don't have |
+| 2026-02-17 | Instant filtering (no API) | Faster, no waiting |
+| 2026-02-17 | SVG icons not emojis | Professional look |
