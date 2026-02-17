@@ -41,7 +41,7 @@
         const today = new Date().toISOString().split('T')[0];
         filteredCruises = CRUISES.filter(c =>
           c.start && c.start >= today &&
-          c.price && parseFloat(c.price) > 0
+          hasValidPrice(c)
         );
         displayCruises = [...filteredCruises];
         console.log(`Loaded ${CRUISES.length} cruises, ${SHIPS.length} ships, ${OPERATORS.length} operators`);
@@ -64,7 +64,7 @@
     function buildSystemPrompt() {
       // Limit cruises for prompt size
       const cruiseList = CRUISES.slice(0, 100).map(c =>
-        `• ${c.ref}: "${c.name}" by ${c.operator} | ${c.region} | ${c.nights}N | ${c.start} | ${c.from}→${c.to} | ${c.rating} | £${c.price}`
+        `• ${c.ref}: "${c.name}" by ${c.operator} | ${c.region} | ${c.nights}N | ${c.start} | ${c.from}→${c.to} | ${c.rating} | £${getBasePrice(c)}`
       ).join('\n');
 
       // Sample ships (mix of river and ocean)
@@ -184,7 +184,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       currentDurationFilter = '';
       applyWizardFilters();
       // Sort by price initially
-      displayCruises.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+      displayCruises.sort((a, b) => getBasePrice(a) - getBasePrice(b));
       render();
       // Scroll to top of results
       setTimeout(() => {
@@ -198,7 +198,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       const today = new Date().toISOString().split('T')[0];
       filteredCruises = CRUISES.filter(c => {
         if (!c.start || c.start < today) return false;
-        if (!c.price || parseFloat(c.price) <= 0) return false;
+        if (!hasValidPrice(c)) return false;
 
         // Type filter (infer from region if not set)
         if (wizardAnswers.type && getCruiseType(c) !== wizardAnswers.type) return false;
@@ -228,7 +228,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       currentDurationFilter = '';
       filteredCruises = CRUISES.filter(c =>
         c.start && c.start >= TODAY &&
-        c.price && parseFloat(c.price) > 0
+        hasValidPrice(c)
       );
       displayCruises = [...filteredCruises];
       render();
@@ -237,10 +237,10 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
     function sortCruises(sortBy) {
       switch(sortBy) {
         case 'price-low':
-          displayCruises.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+          displayCruises.sort((a, b) => getBasePrice(a) - getBasePrice(b));
           break;
         case 'price-high':
-          displayCruises.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
+          displayCruises.sort((a, b) => getBasePrice(b) - getBasePrice(a));
           break;
         case 'date':
           displayCruises.sort((a, b) => new Date(a.start) - new Date(b.start));
@@ -290,7 +290,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       }
 
       // Sort by price
-      results.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+      results.sort((a, b) => getBasePrice(a) - getBasePrice(b));
 
       displayCruises = results;
       render();
@@ -305,6 +305,20 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
 
     // River regions - used to infer cruise type from region
     const RIVER_REGIONS = ['danube', 'rhine', 'douro', 'rhone', 'seine', 'mekong', 'nile', 'moselle', 'main', 'elbe', 'loire', 'saone', 'garonne', 'ganges', 'yangtze', 'mississippi', 'amazon', 'chobe', 'zambezi', 'dutch waterways', 'magdalena', 'po', 'dordogne', 'gironde', 'guadalquivir', 'guadiana', 'oder'];
+
+    // Get base price from cabins array (new data structure)
+    function getBasePrice(cruise) {
+      if (cruise.cabins && cruise.cabins.length > 0) {
+        return parseFloat(cruise.cabins[0].price) || 0;
+      }
+      // Fallback for old data structure
+      return parseFloat(cruise.price) || 0;
+    }
+
+    // Check if cruise has valid price
+    function hasValidPrice(cruise) {
+      return getBasePrice(cruise) > 0;
+    }
 
     // Infer cruise type from region
     function getCruiseType(cruise) {
@@ -336,7 +350,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
           groups[key].sailingDates++;
           groups[key].allDates.push(c.start);
           // Keep the cheapest
-          if (parseFloat(c.price) < parseFloat(groups[key].price)) {
+          if (getBasePrice(c) < getBasePrice(groups[key])) {
             const sailingDates = groups[key].sailingDates;
             const allDates = groups[key].allDates;
             groups[key] = { ...c, sailingDates, allDates };
@@ -357,7 +371,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       if (operators.size === 1 || cruises.length <= 10) {
         // Single operator or small set - just show cheapest overall
         return [...cruises]
-          .sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
+          .sort((a, b) => getBasePrice(a) - getBasePrice(b))
           .slice(0, limit);
       }
 
@@ -365,12 +379,12 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       const byOperator = {};
       for (const c of cruises) {
         const op = c.operator || 'Unknown';
-        if (!byOperator[op] || parseFloat(c.price) < parseFloat(byOperator[op].price)) {
+        if (!byOperator[op] || getBasePrice(c) < getBasePrice(byOperator[op])) {
           byOperator[op] = c;
         }
       }
       return Object.values(byOperator)
-        .sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
+        .sort((a, b) => getBasePrice(a) - getBasePrice(b))
         .slice(0, limit);
     }
 
@@ -636,25 +650,16 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
                     </div>
 
                     <!-- Pricing Panel -->
-                    <div class="md:w-52 bg-gray-50 p-4 border-l flex flex-col justify-between">
+                    <div class="md:w-56 bg-gray-50 p-4 border-l flex flex-col justify-between">
                       <div>
                         <p class="text-xs text-gray-500 mb-3 font-medium">From:</p>
                         <div class="space-y-2">
-                          ${c.price && parseFloat(c.price) > 0 ? `
-                            <div class="flex justify-between items-center">
-                              <span class="text-sm text-gray-600">${getCruiseType(c) === 'ocean' ? 'Inside' : 'Outside'}</span>
-                              <span class="text-lg font-bold text-gray-900">£${parseFloat(c.price).toLocaleString()}</span>
-                            </div>` : ''}
-                          ${c.balcony && parseFloat(c.balcony) > 0 ? `
-                            <div class="flex justify-between items-center">
-                              <span class="text-sm text-gray-600">Balcony</span>
-                              <span class="text-base font-semibold text-gray-700">£${parseFloat(c.balcony).toLocaleString()}</span>
-                            </div>` : ''}
-                          ${c.suite && parseFloat(c.suite) > 0 ? `
-                            <div class="flex justify-between items-center">
-                              <span class="text-sm text-gray-600">Suite</span>
-                              <span class="text-base font-semibold text-gray-700">£${parseFloat(c.suite).toLocaleString()}</span>
-                            </div>` : ''}
+                          ${(c.cabins || []).map((cab, i) => `
+                            <div class="flex justify-between items-center gap-2">
+                              <span class="text-xs text-gray-600 truncate" title="${cab.name}">${cab.name}</span>
+                              <span class="${i === 0 ? 'text-base font-bold text-gray-900' : 'text-sm font-medium text-gray-700'}">£${parseFloat(cab.price).toLocaleString()}</span>
+                            </div>
+                          `).join('')}
                         </div>
                       </div>
                       <div class="mt-4 space-y-2">
@@ -727,7 +732,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       // Start with future cruises only, with valid prices
       let filtered = CRUISES.filter(c =>
         c.start && c.start >= TODAY &&
-        c.price && parseFloat(c.price) > 0
+        hasValidPrice(c)
       );
       console.log('After date/price filter:', filtered.length);
 
@@ -781,10 +786,10 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       const budgetMatch = msg.match(/(?:under|below|max|budget|£|£)\s*(\d{3,5})/);
       if (budgetMatch) {
         const maxPrice = parseInt(budgetMatch[1]);
-        filtered = filtered.filter(c => parseFloat(c.price) <= maxPrice);
+        filtered = filtered.filter(c => getBasePrice(c) <= maxPrice);
       }
       if (msg.includes('budget') || msg.includes('cheap') || msg.includes('value')) {
-        filtered = filtered.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+        filtered = filtered.sort((a, b) => getBasePrice(a) - getBasePrice(b));
       }
 
       // Luxury filters
@@ -915,7 +920,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       });
 
       const cruiseList = sample.map(c =>
-        `• ${c.ref}: "${c.name}" by ${c.operator} on ${c.ship} | ${c.region} | ${c.nights}N | ${c.start?.split('T')[0]} | ${c.from}→${c.to} | ${c.rating} | £${c.price} | TYPE: ${getCruiseType(c)}`
+        `• ${c.ref}: "${c.name}" by ${c.operator} on ${c.ship} | ${c.region} | ${c.nights}N | ${c.start?.split('T')[0]} | ${c.from}→${c.to} | ${c.rating} | £${getBasePrice(c)} | TYPE: ${getCruiseType(c)}`
       ).join('\n');
 
       // Get cheapest per cruise line for the prompt
@@ -925,7 +930,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       const operatorName = isSingleOperator ? [...operators][0] : '';
 
       const cheapestList = bestCruises.map(c =>
-        `• ${isSingleOperator ? '' : c.operator + ': '}£${c.price} - ${c.ship} | ${c.region} | ${c.nights} nights | ${c.start?.split('T')[0]}`
+        `• ${isSingleOperator ? '' : c.operator + ': '}£${getBasePrice(c)} - ${c.ship} | ${c.region} | ${c.nights} nights | ${c.start?.split('T')[0]}`
       ).join('\n');
 
       // After 2 turns, stop asking questions and present results
@@ -1021,7 +1026,7 @@ Keep it to 2 sentences. Point them to the buttons. Do not list cruises yet.
       displayCruises = groupCruisesByItinerary(filteredCruises);
 
       // Sort by price
-      displayCruises.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+      displayCruises.sort((a, b) => getBasePrice(a) - getBasePrice(b));
 
       console.log('Filtering with:', allFilters, '→', filteredCruises.length, 'sailings →', displayCruises.length, 'itineraries');
       render();
