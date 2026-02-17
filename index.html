@@ -182,6 +182,8 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       // Sort by price initially
       displayCruises.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
       render();
+      // Scroll to top of results
+      window.scrollTo(0, 0);
     }
 
     function applyWizardFilters() {
