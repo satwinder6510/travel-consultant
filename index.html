@@ -183,7 +183,11 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
       displayCruises.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
       render();
       // Scroll to top of results
-      window.scrollTo(0, 0);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        const contentArea = document.querySelector('.overflow-y-auto');
+        if (contentArea) contentArea.scrollTop = 0;
+      }, 50);
     }
 
     function applyWizardFilters() {
@@ -580,9 +584,6 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
         ` : ''}
       `;
 
-      // Scroll to bottom
-      const messagesDiv = document.querySelector('.overflow-y-auto');
-      if (messagesDiv) messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
     function saveApiKey() {
