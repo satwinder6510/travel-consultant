@@ -136,76 +136,91 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
     let userTurns = 0;           // Track conversation depth
     let accumulatedFilters = new Set(); // Persists across conversation
 
-    let messages = [
-      { role: 'assistant', content: `Hello! I'm your cruise consultant with access to thousands of river and ocean cruises.
-
-**What kind of cruise are you looking for?** Just tell me in your own words - destination, time of year, budget, or anything else that matters to you.` }
-    ];
+    let messages = [];
     let apiKey = localStorage.getItem('anthropic_api_key') || '';
     let isLoading = false;
 
-    // Multi-select filter state
-    let selectedFilters = new Set();
+    // Wizard state
+    let wizardStep = 1;
+    let wizardAnswers = {
+      type: null,      // 'river' or 'ocean'
+      region: null,    // destination
+      travelers: null  // 1, 2, or '3+'
+    };
+    let wizardComplete = false;
 
-    // Filter categories
-    const FILTER_OPTIONS = {
-      type: ['River', 'Ocean'],
-      region: ['Caribbean', 'Mediterranean', 'Alaska', 'Danube', 'Rhine', 'Northern Europe'],
-      when: ['Spring', 'Summer', 'Fall', 'Winter', 'Christmas'],
-      duration: ['3-5 nights', '7 nights', '10-14 nights'],
-      budget: ['Under £1000', '£1000-2000', '£2000+', 'Luxury']
+    const REGIONS = {
+      river: ['Danube', 'Rhine', 'Douro', 'Rhône', 'Seine', 'Mekong', 'Nile'],
+      ocean: ['Caribbean', 'Mediterranean', 'Alaska', 'Northern Europe', 'Asia & Pacific', 'Australia & NZ']
     };
 
-    function toggleFilter(filter) {
-      if (selectedFilters.has(filter)) {
-        selectedFilters.delete(filter);
-      } else {
-        selectedFilters.add(filter);
+    function selectWizardOption(step, value) {
+      if (step === 1) {
+        wizardAnswers.type = value;
+        wizardAnswers.region = null; // Reset region when type changes
+        wizardStep = 2;
+      } else if (step === 2) {
+        wizardAnswers.region = value;
+        wizardStep = 3;
+      } else if (step === 3) {
+        wizardAnswers.travelers = value;
+        completeWizard();
       }
-      // Update filtered cruises based on current selections
-      updateFilteredCruises();
       render();
     }
 
-    function updateFilteredCruises() {
-      // Combine accumulated + currently selected for live preview
-      const allFilters = new Set([...accumulatedFilters, ...selectedFilters]);
-
-      if (allFilters.size === 0) {
-        filteredCruises = CRUISES.filter(c =>
-          c.start && c.start >= TODAY &&
-          c.price && parseFloat(c.price) > 0
-        );
-        return;
+    function goBackWizard() {
+      if (wizardStep > 1) {
+        wizardStep--;
+        render();
       }
-      const filters = Array.from(allFilters).join(' ');
-      filteredCruises = filterCruises(filters);
-      console.log('Live filter:', filters, '→', filteredCruises.length, 'results');
     }
 
-    function applyFilters() {
-      if (selectedFilters.size === 0) return;
-
-      // Add new selections to accumulated filters
-      selectedFilters.forEach(f => accumulatedFilters.add(f));
-
-      // Use ALL accumulated filters for the search
-      const allFilters = Array.from(accumulatedFilters).join(' ');
-
-      // But only show the NEW selections in the chat message
-      const newFilters = Array.from(selectedFilters).join(', ');
-      document.getElementById('messageInput').value = newFilters;
-
-      console.log('New filters:', newFilters);
-      console.log('All accumulated:', allFilters);
-
-      selectedFilters.clear();
-      sendMessage();
+    function completeWizard() {
+      wizardComplete = true;
+      // Apply wizard filters
+      applyWizardFilters();
+      // Set initial message based on selections
+      const typeLabel = wizardAnswers.type === 'river' ? 'river' : 'ocean';
+      const travelersLabel = wizardAnswers.travelers === 1 ? 'solo traveler' :
+                            wizardAnswers.travelers === 2 ? 'couple' : 'group';
+      messages.push({
+        role: 'assistant',
+        content: `Great! I've found **${filteredCruises.length} ${typeLabel} cruises** in **${wizardAnswers.region}** for a ${travelersLabel}.\n\nHere are the best options. Tell me if you'd like to narrow down by dates, duration, or budget.`
+      });
+      userTurns = 2; // Show cards immediately
+      render();
     }
 
-    function clearFilters() {
-      selectedFilters.clear();
-      accumulatedFilters.clear(); // Also clear conversation history filters
+    function applyWizardFilters() {
+      const today = new Date().toISOString().split('T')[0];
+      filteredCruises = CRUISES.filter(c => {
+        if (!c.start || c.start < today) return false;
+        if (!c.price || parseFloat(c.price) <= 0) return false;
+
+        // Type filter
+        if (wizardAnswers.type && c.type !== wizardAnswers.type) return false;
+
+        // Region filter
+        if (wizardAnswers.region) {
+          const region = wizardAnswers.region.toLowerCase();
+          const cruiseRegion = (c.region || '').toLowerCase();
+          if (!cruiseRegion.includes(region) && !region.includes(cruiseRegion)) return false;
+        }
+
+        return true;
+      });
+      displayCruises = [...filteredCruises];
+      console.log('Wizard filters applied:', wizardAnswers, '→', filteredCruises.length, 'results');
+    }
+
+    function resetWizard() {
+      wizardStep = 1;
+      wizardAnswers = { type: null, region: null, travelers: null };
+      wizardComplete = false;
+      messages = [];
+      userTurns = 0;
+      accumulatedFilters.clear();
       filteredCruises = CRUISES.filter(c =>
         c.start && c.start >= TODAY &&
         c.price && parseFloat(c.price) > 0
@@ -254,6 +269,99 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
     // ========================================================================
     // RENDER
     // ========================================================================
+    function renderWizardModal() {
+      const step1Class = wizardStep === 1 ? '' : 'hidden';
+      const step2Class = wizardStep === 2 ? '' : 'hidden';
+      const step3Class = wizardStep === 3 ? '' : 'hidden';
+
+      const regions = wizardAnswers.type ? REGIONS[wizardAnswers.type] : [];
+
+      return `
+        <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <!-- Progress bar -->
+            <div class="h-1 bg-gray-200">
+              <div class="h-1 bg-blue-600 transition-all duration-300" style="width: ${wizardStep * 33.33}%"></div>
+            </div>
+
+            <div class="p-6">
+              <!-- Step 1: Type -->
+              <div class="${step1Class}">
+                <h2 class="text-xl font-bold text-gray-900 mb-2">What type of cruise?</h2>
+                <p class="text-gray-500 text-sm mb-6">River cruises are intimate journeys along waterways. Ocean cruises explore seas and coastlines.</p>
+                <div class="space-y-3">
+                  <button onclick="selectWizardOption(1, 'river')"
+                    class="w-full p-4 text-left border-2 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center gap-4">
+                    <span class="text-3xl">🏞️</span>
+                    <div>
+                      <div class="font-semibold text-gray-900">River Cruise</div>
+                      <div class="text-sm text-gray-500">Danube, Rhine, Douro & more</div>
+                    </div>
+                  </button>
+                  <button onclick="selectWizardOption(1, 'ocean')"
+                    class="w-full p-4 text-left border-2 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center gap-4">
+                    <span class="text-3xl">🚢</span>
+                    <div>
+                      <div class="font-semibold text-gray-900">Ocean Cruise</div>
+                      <div class="text-sm text-gray-500">Caribbean, Mediterranean, Alaska & more</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Step 2: Region -->
+              <div class="${step2Class}">
+                <button onclick="goBackWizard()" class="text-blue-600 text-sm mb-4 hover:underline">← Back</button>
+                <h2 class="text-xl font-bold text-gray-900 mb-2">Where do you want to go?</h2>
+                <p class="text-gray-500 text-sm mb-6">Select your preferred destination.</p>
+                <div class="grid grid-cols-2 gap-3">
+                  ${regions.map(r => `
+                    <button onclick="selectWizardOption(2, '${r}')"
+                      class="p-3 text-left border-2 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all">
+                      <div class="font-semibold text-gray-900">${r}</div>
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Step 3: Travelers -->
+              <div class="${step3Class}">
+                <button onclick="goBackWizard()" class="text-blue-600 text-sm mb-4 hover:underline">← Back</button>
+                <h2 class="text-xl font-bold text-gray-900 mb-2">How many travelers?</h2>
+                <p class="text-gray-500 text-sm mb-6">This helps us show the right cabin options and prices.</p>
+                <div class="space-y-3">
+                  <button onclick="selectWizardOption(3, 1)"
+                    class="w-full p-4 text-left border-2 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center gap-4">
+                    <span class="text-2xl">👤</span>
+                    <div>
+                      <div class="font-semibold text-gray-900">Solo</div>
+                      <div class="text-sm text-gray-500">Traveling alone</div>
+                    </div>
+                  </button>
+                  <button onclick="selectWizardOption(3, 2)"
+                    class="w-full p-4 text-left border-2 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center gap-4">
+                    <span class="text-2xl">👫</span>
+                    <div>
+                      <div class="font-semibold text-gray-900">Couple</div>
+                      <div class="text-sm text-gray-500">2 travelers</div>
+                    </div>
+                  </button>
+                  <button onclick="selectWizardOption(3, '3+')"
+                    class="w-full p-4 text-left border-2 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center gap-4">
+                    <span class="text-2xl">👨‍👩‍👧</span>
+                    <div>
+                      <div class="font-semibold text-gray-900">Family / Group</div>
+                      <div class="text-sm text-gray-500">3 or more travelers</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     function render() {
       const app = document.getElementById('app');
 
@@ -268,33 +376,35 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
         return;
       }
 
+      // Show wizard modal if not complete
+      const wizardModal = !wizardComplete ? renderWizardModal() : '';
+
       app.innerHTML = `
+        ${wizardModal}
+
         <!-- Header with progress -->
         <header class="bg-blue-900 text-white p-4 shadow-lg">
           <div class="max-w-4xl mx-auto flex items-center justify-between">
             <div>
               <h1 class="text-2xl font-bold">Cruise Consultant</h1>
-              <p class="text-blue-200 text-sm">Find your perfect river or ocean cruise</p>
+              <p class="text-blue-200 text-sm">${wizardComplete ?
+                `${wizardAnswers.type === 'river' ? '🏞️ River' : '🚢 Ocean'} · ${wizardAnswers.region} · ${wizardAnswers.travelers === 1 ? 'Solo' : wizardAnswers.travelers === 2 ? 'Couple' : 'Group'}`
+                : 'Find your perfect cruise'}</p>
             </div>
-            <div class="text-right">
-              <div class="text-2xl font-bold">${filteredCruises.length.toLocaleString()}</div>
-              <div class="text-xs text-blue-200">
-                ${filteredCruises.length === CRUISES.length ? 'cruises available' :
-                  filteredCruises.length > 100 ? 'options remaining' :
-                  filteredCruises.length > 10 ? 'getting closer' :
-                  filteredCruises.length > 0 ? 'almost there!' : 'no matches'}
-              </div>
-              <div class="w-24 bg-blue-800 rounded-full h-1 mt-1">
-                <div class="bg-blue-300 h-1 rounded-full transition-all duration-500"
-                     style="width: ${Math.max(5, 100 - (filteredCruises.length / CRUISES.length * 100))}%"></div>
+            <div class="text-right flex items-center gap-4">
+              ${wizardComplete ? `<button onclick="resetWizard()" class="text-blue-200 text-sm hover:text-white">Start over</button>` : ''}
+              <div>
+                <div class="text-2xl font-bold">${filteredCruises.length.toLocaleString()}</div>
+                <div class="text-xs text-blue-200">cruises</div>
               </div>
             </div>
           </div>
         </header>
 
         <!-- Messages -->
-        <div class="flex-1 overflow-y-auto p-4">
+        <div class="flex-1 overflow-y-auto p-4 ${!wizardComplete ? 'opacity-30' : ''}">
           <div class="max-w-4xl mx-auto space-y-4">
+            ${!wizardComplete ? '<p class="text-center text-gray-400 mt-20">Complete the wizard to start searching...</p>' : ''}
             ${messages.map(m => `
               <div class="flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}">
                 <div class="max-w-[80%] rounded-2xl px-4 py-3 ${
@@ -337,7 +447,7 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
                   <div class="text-blue-600 font-medium">⛵ ${c.start ? new Date(c.start).toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'}) : 'TBC'}</div>
                   <div class="flex justify-between items-center mt-1">
                     <span class="text-green-700 font-bold">£${parseFloat(c.price).toLocaleString()}</span>
-                    <span class="px-2 py-0.5 rounded text-xs ${c.type === 'ocean' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}">${c.type}</span>
+                    <span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700">${c.type === 'ocean' ? 'Inside' : 'Outside'}</span>
                   </div>
                 </div>
               `).join('')}
@@ -349,47 +459,14 @@ ALWAYS: Quote specific cruise ref, ship name, exact dates, and real prices. Neve
         <!-- Input -->
         <div class="border-t bg-white p-4">
           <div class="max-w-4xl mx-auto flex gap-3">
-            <input type="text" id="messageInput" placeholder="Tell me about your dream cruise..."
+            <input type="text" id="messageInput" placeholder="${wizardComplete ? 'Narrow by dates, budget, duration...' : 'Tell me about your dream cruise...'}"
               class="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onkeypress="if(event.key==='Enter')sendMessage()" ${isLoading ? 'disabled' : ''}>
-            <button onclick="sendMessage()" ${isLoading ? 'disabled' : ''}
+              onkeypress="if(event.key==='Enter')sendMessage()" ${isLoading || !wizardComplete ? 'disabled' : ''}>
+            <button onclick="sendMessage()" ${isLoading || !wizardComplete ? 'disabled' : ''}
               class="px-6 py-3 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 disabled:opacity-50">
               Send
             </button>
           </div>
-          <!-- Multi-select filters - only show after first interaction -->
-          ${userTurns >= 1 ? `
-          <div class="max-w-4xl mx-auto mt-3 space-y-2">
-            <p class="text-sm font-medium text-blue-800">👆 Click as many as apply to narrow your results:</p>
-            <div class="flex flex-wrap gap-1.5">
-              ${Object.entries(FILTER_OPTIONS).map(([category, options]) =>
-                options.map(opt => `
-                  <button onclick="toggleFilter('${opt}')"
-                    class="px-3 py-1 text-sm rounded-full transition-all ${
-                      selectedFilters.has(opt)
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                    }">
-                    ${opt}
-                  </button>
-                `).join('')
-              ).join('')}
-            </div>
-            ${selectedFilters.size > 0 ? `
-              <div class="flex items-center gap-3 mt-2 p-2 bg-green-50 rounded-lg border border-green-200">
-                <span class="text-sm font-medium text-green-800">${selectedFilters.size} filter${selectedFilters.size > 1 ? 's' : ''} selected</span>
-                <button onclick="applyFilters()"
-                  class="px-5 py-2 bg-green-600 text-white text-sm font-bold rounded-full hover:bg-green-700 transition-colors shadow-md">
-                  🔍 Find Cruises
-                </button>
-                <button onclick="clearFilters()"
-                  class="px-3 py-1.5 text-sm text-gray-500 hover:text-red-600">
-                  ✕ Clear
-                </button>
-              </div>
-            ` : ''}
-          </div>
-          ` : ''}
         </div>
       `;
 
@@ -696,20 +773,18 @@ Keep it to 2 sentences. Point them to the buttons. Do not list cruises yet.
     async function sendMessage() {
       const input = document.getElementById('messageInput');
       const text = input.value.trim();
-      if (!text || isLoading) return;
+      if (!text || isLoading || !wizardComplete) return;
 
-      // Add any text-based filters to accumulated set
-      // (handles typed input as well as button clicks)
-      if (text) {
-        accumulatedFilters.add(text);
-      }
+      // Add text to accumulated filters
+      accumulatedFilters.add(text);
 
-      // Filter using ALL accumulated criteria
-      const allFilters = Array.from(accumulatedFilters).join(' ');
+      // Build filter string: wizard base + accumulated refinements
+      const wizardBase = `${wizardAnswers.type} ${wizardAnswers.region}`;
+      const allFilters = wizardBase + ' ' + Array.from(accumulatedFilters).join(' ');
       currentFilters.query = allFilters;
       filteredCruises = filterCruises(allFilters);
-      displayCruises = [...filteredCruises]; // Cache for cards - same data Claude sees
-      console.log('Filtering with accumulated:', allFilters, '→', filteredCruises.length);
+      displayCruises = [...filteredCruises];
+      console.log('Filtering with:', allFilters, '→', filteredCruises.length);
 
       userTurns++; // Increment conversation depth
 
